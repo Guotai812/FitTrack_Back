@@ -49,6 +49,7 @@ const signup = async (req, res, next) => {
     token = jwt.sign(
       {
         userId: createdUser.id,
+        userName: createdUser.name,
         email: createdUser.email,
       },
       process.env.JWT_SECRET,
@@ -58,9 +59,12 @@ const signup = async (req, res, next) => {
     return next(new HttpError("Sign up failed", 500));
   }
 
-  res
-    .status(200)
-    .json({ userId: createdUser.id, email: createdUser.email, token: token });
+  res.status(200).json({
+    userId: createdUser.id,
+    userName: createdUser.name,
+    email: createdUser.email,
+    token: token,
+  });
 };
 
 const login = async (req, res, next) => {
@@ -103,6 +107,7 @@ const login = async (req, res, next) => {
     token = jwt.sign(
       {
         userId: identifiedUser.id,
+        userName: identifiedUser.name,
         email: identifiedUser.email,
       },
       process.env.JWT_SECRET,
@@ -112,7 +117,8 @@ const login = async (req, res, next) => {
     return next(new HttpError("Login failed", 500));
   }
   res.status(200).json({
-    userId: identifiedUser.userId,
+    userId: identifiedUser.id,
+    userName: identifiedUser.name,
     email: identifiedUser.email,
     token: token,
   });
