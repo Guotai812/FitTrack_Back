@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 
 const usersRoutes = require("./routes/usersRoutes");
+const basicRoute = require("./routes/basicRoutes");
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/api/users", usersRoutes);
+app.use("/api/basic", basicRoute);
 
 // Root route
 app.get("/", (req, res) => {
