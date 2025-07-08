@@ -79,6 +79,7 @@ const login = async (req, res, next) => {
   try {
     identifiedUser = await User.findOne({ email: email });
   } catch (error) {
+    console.log("dataBase wrong");
     return next(new HttpError("Could not login", 500));
   }
 
@@ -86,6 +87,7 @@ const login = async (req, res, next) => {
   try {
     isPasswordValid = await bcrypt.compare(password, identifiedUser.password);
   } catch (error) {
+    console.log("bcrypt crash");
     return next(
       new HttpError(
         "Could not identify user, credentials seem to be wrong.",
@@ -114,6 +116,7 @@ const login = async (req, res, next) => {
       { expiresIn: "1h" }
     );
   } catch (error) {
+    console.log("token crash");
     return next(new HttpError("Login failed", 500));
   }
   res.status(200).json({
