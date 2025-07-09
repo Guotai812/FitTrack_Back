@@ -36,6 +36,7 @@ const signup = async (req, res, next) => {
     name: userName,
     email,
     password: hashedPassword,
+    isCompleted: false,
   });
 
   try {
@@ -113,7 +114,7 @@ const login = async (req, res, next) => {
         email: identifiedUser.email,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "6s" }
+      { expiresIn: "1h" }
     );
   } catch (error) {
     console.log("token crash");
@@ -127,5 +128,22 @@ const login = async (req, res, next) => {
   });
 };
 
+const getUserById = async (req, res, next) => {
+  const userId = req.params.uid;
+  let user;
+  try {
+    user = await User.findById(userId);
+  } catch (error) {
+    console.log("couldn't get user by id");
+    return next(new HttpError("Couldn't get user by id", 500));
+  }
+  if (!user) {
+    console.log("User not exist");
+    return next(new HttpError("User not exist", 404));
+  }
+  return res.status(200).json({ message: "succeed", user });
+};
+
 exports.signup = signup;
 exports.login = login;
+exports.getUserById = getUserById;

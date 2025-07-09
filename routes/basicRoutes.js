@@ -5,7 +5,7 @@ const basicControllers = require("../controllers/basicControllers");
 const router = express.Router();
 
 router.post(
-  "/add",
+  "/",
   [
     check("id").notEmpty().withMessage("id is required"),
     check("weight")
@@ -20,10 +20,14 @@ router.post(
       .bail()
       .isFloat({ gt: 0 })
       .withMessage("Height must be a positive number"),
-    check("frequency").not().isEmpty().withMessage(""),
-    check("type").notEmpty().withMessage(""),
+    check("frequency").not().isEmpty().withMessage("frequency is required"),
+    check("type").notEmpty().withMessage("type is required"),
+    check("gender").notEmpty().withMessage("gender is required"),
+    check("goal").notEmpty().withMessage("goal is required"),
   ],
   basicControllers.addBasicInformation
 );
+
+router.get("/user/:uid", basicControllers.getUsersData);
 
 module.exports = router;
