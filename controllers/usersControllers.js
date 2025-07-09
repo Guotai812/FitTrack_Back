@@ -83,6 +83,11 @@ const login = async (req, res, next) => {
     return next(new HttpError("Could not login", 500));
   }
 
+  if (!identifiedUser) {
+    console.log("can't find email");
+    return next(new HttpError("email does not exist!", 401));
+  }
+
   let isPasswordValid;
   try {
     isPasswordValid = await bcrypt.compare(password, identifiedUser.password);
@@ -96,12 +101,7 @@ const login = async (req, res, next) => {
     );
   }
   if (!isPasswordValid) {
-    return next(
-      new HttpError(
-        "Could not identify user, credentials seem to be wrong.",
-        401
-      )
-    );
+    return next(new HttpError("Invalid password.", 401));
   }
 
   let token;
@@ -113,7 +113,7 @@ const login = async (req, res, next) => {
         email: identifiedUser.email,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "6s" }
     );
   } catch (error) {
     console.log("token crash");
