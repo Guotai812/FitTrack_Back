@@ -128,7 +128,8 @@ const login = async (req, res, next) => {
   });
 };
 
-const getUserById = async (req, res, next) => {
+const getUserById = async (req, res, next) => { 
+  console.log("asd");
   const userId = req.params.uid;
   let user;
   try {

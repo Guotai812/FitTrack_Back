@@ -1,7 +1,8 @@
 require("dotenv").config();
 const { validationResult } = require("express-validator");
-const Basic = require("../models/Basic");
+const mongoose = require("mongoose");
 
+const Basic = require("../models/Basic");
 const User = require("../models/User");
 const HttpError = require("../models/HttpError");
 
@@ -11,10 +12,10 @@ const addBasicInformation = async (req, res, next) => {
     return next(new HttpError(errors.array()[0].msg, 400));
   }
 
-  const { id, weight, height, frequency, type, gender, goal } = req.body;
+  const { userId, weight, height, frequency, type, gender, goal } = req.body;
 
   const basicInfo = new Basic({
-    id,
+    userId,
     weight,
     height,
     frequency,
@@ -23,29 +24,32 @@ const addBasicInformation = async (req, res, next) => {
     goal,
   });
 
+  let user;
   try {
-    await basicInfo.save();
-  } catch (error) {
-    return next(new HttpError("Add information failed", 500));
+    user = await User.findById(userId);
+  } catch {
+    return next(new HttpError("Fail to add info", 500));
   }
+  if (!user || user.isCompleted) {
+    return next(new HttpError("User is not exist or is completed", 404));
+  }
+
+  let session;
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+    await basicInfo.save({ session });
+    user.isCompleted = true;
+    await user.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return next(new HttpError("Fail to add info", 500));
+  }
+
   return res.status(200).json({ msg: "Added successfully" });
 };
 
-const getUsersData = async (req, res, next) => {
-  const userId = req.params.uid;
-  let existingUserInfo;
-  try {
-    existingUserInfo = await Basic.findOne({ userId });
-  } catch (error) {
-    console.log("get infor of user | database error");
-    return next(new HttpError("database error"));
-  }
-  if (!existingUserInfo) {
-    console.log(`can't find data of ${userId}`);
-    return next(new HttpError("no results!"));
-  }
-  return res.status(200).json({ message: "success", data: existingUserInfo });
-};
-
 exports.addBasicInformation = addBasicInformation;
-exports.getUsersData = getUsersData;

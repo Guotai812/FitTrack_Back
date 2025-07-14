@@ -5,9 +5,9 @@ const basicControllers = require("../controllers/basicControllers");
 const router = express.Router();
 
 router.post(
-  "/",
+  "/:uid/basicInformation",
   [
-    check("id").notEmpty().withMessage("id is required"),
+    check("userId").notEmpty().withMessage("id is required"),
     check("weight")
       .notEmpty()
       .withMessage("Weight is required")
@@ -27,7 +27,5 @@ router.post(
   ],
   basicControllers.addBasicInformation
 );
-
-router.get("/user/:uid", basicControllers.getUsersData);
 
 module.exports = router;
