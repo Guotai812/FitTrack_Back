@@ -32,7 +32,7 @@ const addBasicInformation = async (req, res, next) => {
       ? (10 * weight + 6.25 * height - 5 * age) * freMultiplier
       : (10 * weight + 6.25 * height - 5 * age - 161) * freMultiplier;
 
-  const calories =
+  const kcal =
     goal === "keep fit" ? TDEE : goal === "lose fat" ? TDEE - 300 : TDEE + 300;
   const basicInfo = new Basic({
     userId,
@@ -44,7 +44,7 @@ const addBasicInformation = async (req, res, next) => {
     birthdate,
     age,
     goal,
-    calories,
+    kcal,
   });
 
   let user;
