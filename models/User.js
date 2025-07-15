@@ -8,6 +8,7 @@ const userSchema = new Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true, minlength: 6 },
   isCompleted: { type: Boolean, required: true },
+  kcal: { type: Number },
 });
 
 userSchema.plugin(uniqueValidator);

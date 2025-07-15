@@ -47,6 +47,7 @@ const addBasicInformation = async (req, res, next) => {
     age,
     goal,
     kcal,
+    date: new Date().toISOString().slice(0, 10),
   });
 
   let user;
@@ -65,6 +66,7 @@ const addBasicInformation = async (req, res, next) => {
     session.startTransaction();
     await basicInfo.save({ session });
     user.isCompleted = true;
+    user.kcal = kcal;
     await user.save({ session });
     await session.commitTransaction();
     session.endSession();

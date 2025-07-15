@@ -13,6 +13,7 @@ const basicSchema = new Schema({
   age: { type: Number, required: true },
   kcal: { type: Number, require: true },
   goal: { type: String, require: true },
+  date: { type: String, require: true },
 });
 
 basicSchema.plugin(uniqueValidator);
