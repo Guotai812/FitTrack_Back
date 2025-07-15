@@ -42,7 +42,7 @@ const signup = async (req, res, next) => {
   try {
     await createdUser.save();
   } catch (error) {
-    return next(new HttpError("Sign up failed", 500));
+    return next(new HttpError("Signup Failed", 500));
   }
 
   let token;

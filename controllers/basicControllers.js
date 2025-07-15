@@ -5,7 +5,6 @@ const mongoose = require("mongoose");
 const Basic = require("../models/Basic");
 const User = require("../models/User");
 const HttpError = require("../models/HttpError");
-const { json } = require("express");
 
 const addBasicInformation = async (req, res, next) => {
   const errors = validationResult(req);
@@ -40,12 +39,6 @@ const addBasicInformation = async (req, res, next) => {
     userId,
     weight,
     height,
-    frequency,
-    type,
-    gender,
-    birthdate,
-    age,
-    goal,
     kcal,
     date: new Date().toISOString().slice(0, 10),
   });
@@ -67,6 +60,13 @@ const addBasicInformation = async (req, res, next) => {
     await basicInfo.save({ session });
     user.isCompleted = true;
     user.kcal = kcal;
+    user.height = height;
+    user.weight = weight;
+    user.birthdate = birthdate;
+    user.type = type;
+    user.goal = goal;
+    user.frequency = frequency;
+    user.age = age;
     await user.save({ session });
     await session.commitTransaction();
     session.endSession();
@@ -102,19 +102,27 @@ const getInfoByUserId = async (req, res, next) => {
   // 3. fetch basic info
   let info;
   try {
-    info = await Basic.findOne({ userId: uid }).exec();
+    info = await Basic.findOne({
+      userId: uid,
+      date: new Date().toISOString().slice(0, 10),
+    }).exec();
     if (!info) {
-      return next(new HttpError("User info not found", 404));
+      info = new Basic({
+        weight: user.weight,
+        height: user.height,
+        kcal: user.kcal,
+        date: new Date().toISOString().slice(1, 10),
+        userId: uid,
+      });
+      info.save();
     }
   } catch (err) {
     return next(new HttpError("Failed to fetch user info", 500));
   }
 
   // 4. destructure and respond
-  const { weight, height, frequency, goal, birthdate, type, kcal } = info;
-  return res
-    .status(200)
-    .json({ weight, height, frequency, goal, birthdate, type, kcal });
+  const { weight, height, kcal, diets, exercises } = info;
+  return res.status(200).json({ weight, height, kcal, diets, exercises });
 };
 
 exports.addBasicInformation = addBasicInformation;
