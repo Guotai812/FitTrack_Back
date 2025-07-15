@@ -9,6 +9,7 @@ const basicSchema = new Schema({
   height: { type: Number, required: true },
   frequency: { type: String, required: true },
   type: { type: String, required: true },
+  birthdate: { type: String, required: true },
   age: { type: Number, required: true },
   calories: { type: Number, require: true },
 });

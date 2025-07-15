@@ -24,6 +24,7 @@ router.post(
     check("type").notEmpty().withMessage("type is required"),
     check("gender").notEmpty().withMessage("gender is required"),
     check("goal").notEmpty().withMessage("goal is required"),
+    check("birthdate").notEmpty().withMessage("birthdate should not be empty"),
   ],
   basicControllers.addBasicInformation
 );

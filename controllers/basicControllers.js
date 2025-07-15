@@ -12,8 +12,10 @@ const addBasicInformation = async (req, res, next) => {
     return next(new HttpError(errors.array()[0].msg, 400));
   }
 
-  const { userId, weight, height, frequency, type, gender, goal, age } =
+  const { userId, weight, height, frequency, type, gender, goal, birthdate } =
     req.body;
+
+  const age = new Date().getFullYear() - new Date(birthdate).getFullYear();
 
   const freMultiplier =
     frequency === "0"
@@ -39,6 +41,7 @@ const addBasicInformation = async (req, res, next) => {
     frequency,
     type,
     gender,
+    birthdate,
     age,
     goal,
     calories,
