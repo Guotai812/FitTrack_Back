@@ -29,4 +29,6 @@ router.post(
   basicControllers.addBasicInformation
 );
 
+router.get("/:uid", basicControllers.getInfoByUserId);
+
 module.exports = router;
