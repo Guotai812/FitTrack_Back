@@ -63,6 +63,7 @@ const signup = async (req, res, next) => {
   res.status(200).json({
     userId: createdUser.id,
     userName: createdUser.name,
+    isCompleted: createdUser.isCompleted,
     email: createdUser.email,
     token: token,
   });
@@ -123,6 +124,7 @@ const login = async (req, res, next) => {
   res.status(200).json({
     userId: identifiedUser.id,
     userName: identifiedUser.name,
+    isCompleted: identifiedUser.isCompleted,
     email: identifiedUser.email,
     token: token,
   });

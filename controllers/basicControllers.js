@@ -111,7 +111,7 @@ const getInfoByUserId = async (req, res, next) => {
         weight: user.weight,
         height: user.height,
         kcal: user.kcal,
-        date: new Date().toISOString().slice(1, 10),
+        date: new Date().toISOString().slice(0, 10),
         userId: uid,
       });
       info.save();
