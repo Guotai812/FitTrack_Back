@@ -104,14 +104,24 @@ const getInfoByUserId = async (req, res, next) => {
   try {
     info = await Basic.findOne({
       userId: uid,
-      date: new Date().toISOString().slice(0, 10),
+      date: new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Australia/Sydney",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date()),
     }).exec();
     if (!info) {
       info = new Basic({
         weight: user.weight,
         height: user.height,
         kcal: user.kcal,
-        date: new Date().toISOString().slice(0, 10),
+        date: new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Australia/Sydney",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date()),
         userId: uid,
       });
       info.save();
@@ -121,8 +131,8 @@ const getInfoByUserId = async (req, res, next) => {
   }
 
   // 4. destructure and respond
-  const { weight, height, kcal, diets, exercises } = info;
-  return res.status(200).json({ weight, height, kcal, diets, exercises });
+  const { weight, height, kcal, diets, exercises, date } = info;
+  return res.status(200).json({ weight, height, kcal, diets, exercises, date });
 };
 
 exports.addBasicInformation = addBasicInformation;
