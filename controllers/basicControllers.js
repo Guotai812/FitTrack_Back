@@ -1,9 +1,11 @@
 require("dotenv").config();
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
+const toCamelCase = require("../utils/toCamelCase");
 
 const Basic = require("../models/Basic");
 const User = require("../models/User");
+const Food = require("../models/Food");
 const HttpError = require("../models/HttpError");
 
 const addBasicInformation = async (req, res, next) => {
@@ -135,5 +137,34 @@ const getInfoByUserId = async (req, res, next) => {
   return res.status(200).json({ weight, height, kcal, diets, exercises, date });
 };
 
+const getPoolById = async (req, res, next) => {
+  const { uid } = req.params;
+  if (!uid) {
+    return res.status(400).json({ message: "Missing user ID in parameters." });
+  }
+
+  try {
+    const foodsArray = await Food.find({
+      $or: [{ creator: "official" }, { creator: uid }],
+    }).lean();
+
+    if (!foodsArray.length) {
+      throw new Error();
+    }
+
+    const pool = foodsArray.reduce((map, food) => {
+      const key = toCamelCase(food.name);
+      map[key] = food;
+      return map;
+    }, {});
+
+    return res.status(200).json(pool);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Could not fetch food pool." });
+  }
+};
+
 exports.addBasicInformation = addBasicInformation;
 exports.getInfoByUserId = getInfoByUserId;
+exports.getPoolById = getPoolById;

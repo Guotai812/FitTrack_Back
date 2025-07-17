@@ -4,6 +4,8 @@ const basicControllers = require("../controllers/basicControllers");
 
 const router = express.Router();
 
+// TODO: Token checker
+
 router.post(
   "/:uid/basicInformation",
   [
@@ -30,5 +32,7 @@ router.post(
 );
 
 router.get("/:uid", basicControllers.getInfoByUserId);
+
+router.get("/:uid/getPool", basicControllers.getPoolById);
 
 module.exports = router;
