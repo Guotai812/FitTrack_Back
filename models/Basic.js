@@ -9,7 +9,23 @@ const basicSchema = new Schema({
   height: { type: Number, required: true },
   kcal: { type: Number, require: true },
   date: { type: String, require: true },
-  diets: { type: [String], default: [] },
+  diets: {
+    type: {},
+    default: {
+      breakfast: {
+        extra: [{ food: "", weight: 0 }],
+        diet: [{ food: "", weight: 0 }],
+      },
+      lunch: {
+        extra: [{ food: "", weight: 0 }],
+        diet: [{ food: "", weight: 0 }],
+      },
+      dinner: {
+        extra: [{ food: "", weight: 0 }],
+        diet: [{ food: "", weight: 0 }],
+      },
+    },
+  },
   exercises: { type: [String], default: [] },
 });
 
