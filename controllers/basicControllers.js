@@ -153,7 +153,7 @@ const getPoolById = async (req, res, next) => {
     }
 
     const pool = foodsArray.reduce((map, food) => {
-      const key = toCamelCase(food.name);
+      const key = food._id;
       map[key] = food;
       return map;
     }, {});
@@ -165,6 +165,98 @@ const getPoolById = async (req, res, next) => {
   }
 };
 
+const addUserDiet = async (req, res, next) => {
+  const { uid } = req.params;
+
+  // 1) Validate User ID
+  if (!mongoose.Types.ObjectId.isValid(uid)) {
+    return next(new HttpError("Invalid user ID", 400));
+  }
+
+  // 2) Ensure user exists
+  let user;
+  try {
+    user = await User.findById(uid);
+  } catch (err) {
+    console.error("DB error finding user:", err);
+    return next(new HttpError("Server error", 500));
+  }
+  if (!user) {
+    return next(new HttpError("User not found", 404));
+  }
+
+  // 3) Compute today’s date as 'YYYY-MM-DD'
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  // 4) Find today’s Basic record
+  let record;
+  try {
+    record = await Basic.findOne({ userId: uid, date: today });
+  } catch (err) {
+    console.error("DB error finding Basic record:", err);
+    return next(new HttpError("Server error", 500));
+  }
+  if (!record) {
+    return next(new HttpError("No diet record for today", 404));
+  }
+
+  // 5) Extract & coerce payload
+  let { name, weight: w, kcal: k, meal, isMain } = req.body;
+  const weight = Number(w);
+  const kcal = Number(k);
+
+  // 6) Validate inputs
+  if (
+    !name ||
+    isNaN(weight) ||
+    isNaN(kcal) ||
+    !["breakfast", "lunch", "dinner"].includes(meal) ||
+    typeof isMain !== "boolean"
+  ) {
+    return next(new HttpError("Missing or invalid fields", 400));
+  }
+
+  // 7) Ensure the nested path exists
+  if (!record.diets) {
+    record.diets = {};
+  }
+  if (!record.diets[meal]) {
+    record.diets[meal] = { main: [], extra: [] };
+  }
+
+  const path = isMain ? "main" : "extra";
+  const slotArr = record.diets[meal][path];
+
+  // 8) Merge same-item or push new
+  const existing = slotArr.find((entry) => entry.food === name);
+  if (existing) {
+    existing.weight += weight;
+  } else {
+    slotArr.push({ food: name, weight });
+  }
+
+  // 9) Subtract calories
+  record.kcal -= kcal;
+
+  // 10) Mark modified & save
+  // (if `diets` is a Mixed type, Mongoose needs this)
+  record.markModified("diets");
+  try {
+    await record.save();
+  } catch (err) {
+    console.error("DB error saving Basic record:", err);
+    return next(new HttpError("Failed to update diet", 500));
+  }
+
+  // 11) Return updated record
+  res.status(200).json(record);
+};
 exports.addBasicInformation = addBasicInformation;
 exports.getInfoByUserId = getInfoByUserId;
 exports.getPoolById = getPoolById;
+exports.addUserDiet = addUserDiet;

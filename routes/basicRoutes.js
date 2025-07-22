@@ -35,4 +35,6 @@ router.get("/:uid", basicControllers.getInfoByUserId);
 
 router.get("/:uid/getPool", basicControllers.getPoolById);
 
+router.post("/:uid/addDiet", basicControllers.addUserDiet);
+
 module.exports = router;

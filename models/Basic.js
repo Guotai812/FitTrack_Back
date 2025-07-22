@@ -11,21 +11,9 @@ const basicSchema = new Schema({
   date: { type: String, require: true },
   diets: {
     type: {},
-    default: {
-      breakfast: {
-        extra: [{ food: "", weight: 0 }],
-        diet: [{ food: "", weight: 0 }],
-      },
-      lunch: {
-        extra: [{ food: "", weight: 0 }],
-        diet: [{ food: "", weight: 0 }],
-      },
-      dinner: {
-        extra: [{ food: "", weight: 0 }],
-        diet: [{ food: "", weight: 0 }],
-      },
-    },
+    default: {},
   },
+
   exercises: { type: [String], default: [] },
 });
 
