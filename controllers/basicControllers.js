@@ -115,9 +115,10 @@ const getInfoByUserId = async (req, res, next) => {
     }).exec();
     if (!info) {
       info = new Basic({
+        kcal: user.kcal,
         weight: user.weight,
         height: user.height,
-        kcal: user.kcal,
+        currentKcal: user.kcal,
         date: new Intl.DateTimeFormat("en-CA", {
           timeZone: "Australia/Sydney",
           year: "numeric",
@@ -126,15 +127,17 @@ const getInfoByUserId = async (req, res, next) => {
         }).format(new Date()),
         userId: uid,
       });
-      info.save();
+      await info.save();
     }
   } catch (err) {
     return next(new HttpError("Failed to fetch user info", 500));
   }
 
   // 4. destructure and respond
-  const { weight, height, kcal, diets, exercises, date } = info;
-  return res.status(200).json({ weight, height, kcal, diets, exercises, date });
+  const { weight, height, kcal, diets, exercises, date, currentKcal } = info;
+  return res
+    .status(200)
+    .json({ weight, height, kcal, diets, exercises, date, currentKcal });
 };
 
 const getPoolById = async (req, res, next) => {
@@ -241,7 +244,7 @@ const addUserDiet = async (req, res, next) => {
   }
 
   // 9) Subtract calories
-  record.kcal -= kcal;
+  record.currentKcal -= kcal;
 
   // 10) Mark modified & save
   // (if `diets` is a Mixed type, Mongoose needs this)

@@ -8,6 +8,7 @@ const basicSchema = new Schema({
   weight: { type: Number, required: true },
   height: { type: Number, required: true },
   kcal: { type: Number, require: true },
+  currentKcal: { type: Number, require: true },
   date: { type: String, require: true },
   diets: {
     type: {},
