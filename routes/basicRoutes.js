@@ -37,4 +37,6 @@ router.get("/:uid/getPool", basicControllers.getPoolById);
 
 router.post("/:uid/addDiet", basicControllers.addUserDiet);
 
+router.patch("/:uid/editDiet", basicControllers.editDiet);
+
 module.exports = router;

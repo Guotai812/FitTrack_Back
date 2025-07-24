@@ -259,7 +259,100 @@ const addUserDiet = async (req, res, next) => {
   // 11) Return updated record
   res.status(200).json(record);
 };
+
+const editDiet = async (req, res, next) => {
+  const { uid } = req.params;
+
+  // 1) Find user
+  let existingUser;
+  try {
+    existingUser = await User.findById(uid);
+  } catch (error) {
+    console.error("editDiet – error finding user:", error);
+    return next(new HttpError("Failed to update data", 500));
+  }
+  if (!existingUser) {
+    console.warn("editDiet – user not found:", uid);
+    return next(new HttpError("Failed to update data", 404));
+  }
+
+  // 2) Find today's record
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  let record;
+  try {
+    record = await Basic.findOne({ userId: uid, date: today });
+  } catch (error) {
+    console.error("editDiet – DB error finding Basic record:", error);
+    return next(new HttpError("Server error", 500));
+  }
+  if (!record) {
+    console.warn("editDiet – no record for today:", today);
+    return next(new HttpError("No diet record for today", 404));
+  }
+
+  // 3) Destructure request body
+  const { food, meal, isMain, weight, originalWeight } = req.body;
+
+  // 4) Load food doc (and kcal)
+  let foodDoc;
+  try {
+    foodDoc = await Food.findById(food);
+  } catch (error) {
+    console.error("editDiet – error loading Food doc:", error);
+    return next(new HttpError("Failed to update", 500));
+  }
+  if (!foodDoc) {
+    console.warn("editDiet – food not found:", food);
+    return next(new HttpError("Food not found", 404));
+  }
+
+  // 5) Compute caloric delta (one decimal)
+  const gap = Number(originalWeight) - Number(weight);
+  const raw = (gap / 100) * foodDoc.kcal;
+  const gapKcal = Math.round(raw * 10) / 10;
+
+  // 6) Locate and update the diet entry
+  const side = isMain ? "main" : "extra";
+  const list = record.diets?.[meal]?.[side];
+  if (!Array.isArray(list)) {
+    console.error("editDiet – unexpected structure for", meal, side);
+    return next(new HttpError("Invalid meal type", 400));
+  }
+
+  const entry = list.find(
+    (item) =>
+      // if item.food is an ObjectId, compare strings:
+      item.food.toString() === food
+  );
+  if (!entry) {
+    console.warn(`editDiet – no entry for food ${food} in ${meal}.${side}`);
+    return next(new HttpError("No such food entry in your diet", 400));
+  }
+
+  entry.weight = Number(weight);
+
+  // 7) Update remaining calories
+  record.currentKcal = (record.currentKcal ?? 0) + gapKcal;
+
+  // 8) Save and respond
+  try {
+    await record.save();
+  } catch (error) {
+    console.error("editDiet – error saving record:", error);
+    return next(new HttpError("Failed to update diet", 500));
+  }
+
+  res.status(200).json({ msg: "success", updated: record });
+};
+
 exports.addBasicInformation = addBasicInformation;
 exports.getInfoByUserId = getInfoByUserId;
 exports.getPoolById = getPoolById;
 exports.addUserDiet = addUserDiet;
+exports.editDiet = editDiet;
