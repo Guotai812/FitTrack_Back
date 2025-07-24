@@ -351,8 +351,73 @@ const editDiet = async (req, res, next) => {
   res.status(200).json({ msg: "success", updated: record });
 };
 
+const deleteDiet = async (req, res, next) => {
+  const { uid, foodId } = req.params;
+
+  let existingUser;
+  try {
+    existingUser = await User.findById(uid);
+  } catch (error) {
+    console.error("editDiet – error finding user:", error);
+    return next(new HttpError("Failed to update data", 500));
+  }
+  if (!existingUser) {
+    console.warn("editDiet – user not found:", uid);
+    return next(new HttpError("Failed to update data", 404));
+  }
+
+  // 2) Find today's record
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  let record;
+  try {
+    record = await Basic.findOne({ userId: uid, date: today });
+  } catch (error) {
+    console.error("editDiet – DB error finding Basic record:", error);
+    return next(new HttpError("Server error", 500));
+  }
+  if (!record) {
+    console.warn("editDiet – no record for today:", today);
+    return next(new HttpError("No diet record for today", 404));
+  }
+
+  const { meal, isMain, kcal } = req.body;
+  const listKey = isMain ? "main" : "extra";
+  let updated;
+  try {
+    updated = await Basic.findOneAndUpdate(
+      { userId: uid, date: today },
+      {
+        $pull: {
+          [`diets.${meal}.${listKey}`]: { food: foodId },
+        },
+        $inc: { currentKcal: kcal },
+      },
+      { new: true }
+    );
+  } catch (err) {
+    console.error("deleteDiet – DB error:", err);
+    return next(new HttpError("Could not update record", 500));
+  }
+
+  if (!updated) {
+    return next(new HttpError("No record found for today", 404));
+  }
+
+  res.status(200).json({
+    message: "Entry removed",
+    updated,
+  });
+};
+
 exports.addBasicInformation = addBasicInformation;
 exports.getInfoByUserId = getInfoByUserId;
 exports.getPoolById = getPoolById;
 exports.addUserDiet = addUserDiet;
 exports.editDiet = editDiet;
+exports.deleteDiet = deleteDiet;

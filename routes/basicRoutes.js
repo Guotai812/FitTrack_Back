@@ -39,4 +39,6 @@ router.post("/:uid/addDiet", basicControllers.addUserDiet);
 
 router.patch("/:uid/editDiet", basicControllers.editDiet);
 
+router.delete("/:uid/:foodId/deleteDiet", basicControllers.deleteDiet);
+
 module.exports = router;
