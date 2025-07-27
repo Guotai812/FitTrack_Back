@@ -16,6 +16,7 @@ const userSchema = new Schema({
   frequency: { type: String, default: "" },
   type: { type: String, default: "" },
   goal: { type: String, default: "" },
+  exercises: { type: {}, default: {} },
 });
 
 userSchema.plugin(uniqueValidator);

@@ -5,6 +5,7 @@ const Schema = mongoose.Schema;
 
 const foodSchema = new Schema({
   creator: { type: String, required: true },
+  isPublic: { type: Boolean, require: true, default: true },
   name: { type: Number, unique: true, required: true },
   image: { type: Number, required: true },
   kcal: { type: Number, require: true },

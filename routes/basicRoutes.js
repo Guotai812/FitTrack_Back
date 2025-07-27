@@ -31,7 +31,7 @@ router.post(
   basicControllers.addBasicInformation
 );
 
-router.get("/:uid", basicControllers.getInfoByUserId);
+router.get("/:uid/getDailyBasic", basicControllers.getInfoByUserId);
 
 router.get("/:uid/getPool", basicControllers.getPoolById);
 

@@ -6,6 +6,7 @@ const toCamelCase = require("../utils/toCamelCase");
 const Basic = require("../models/Basic");
 const User = require("../models/User");
 const Food = require("../models/Food");
+const Exercise = require("../models/Exercise");
 const HttpError = require("../models/HttpError");
 
 const addBasicInformation = async (req, res, next) => {
@@ -143,28 +144,44 @@ const getInfoByUserId = async (req, res, next) => {
 const getPoolById = async (req, res, next) => {
   const { uid } = req.params;
   if (!uid) {
-    return res.status(400).json({ message: "Missing user ID in parameters." });
+    return next(new HttpError("Missing user ID in parameters.", 400));
   }
 
   try {
-    const foodsArray = await Food.find({
-      $or: [{ creator: "official" }, { creator: uid }],
-    }).lean();
+    const [foodsArray, exercisesArray] = await Promise.all([
+      Food.find({
+        isPublic: true,
+        $or: [{ creator: "official" }, { creator: uid }],
+      }).lean(),
+      Exercise.find({
+        isPublic: true,
+        $or: [{ creator: "official" }, { creator: uid }],
+      }).lean(),
+    ]);
 
-    if (!foodsArray.length) {
-      throw new Error();
+    // If there’s nothing to return at all
+    if (foodsArray.length === 0 && exercisesArray.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No public foods or exercises found." });
     }
 
-    const pool = foodsArray.reduce((map, food) => {
-      const key = food._id;
-      map[key] = food;
+    const foods = foodsArray.reduce((map, item) => {
+      map[item._id.toString()] = item;
       return map;
     }, {});
 
-    return res.status(200).json(pool);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Could not fetch food pool." });
+    const exercises = exercisesArray.reduce((map, item) => {
+      map[item._id.toString()] = item;
+      return map;
+    }, {});
+
+    return res.status(200).json({ foods, exercises });
+  } catch (error) {
+    console.error("getPoolById error:", error);
+    return next(
+      new HttpError("Internal server error while fetching pool.", 500)
+    );
   }
 };
 
