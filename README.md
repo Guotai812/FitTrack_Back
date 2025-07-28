@@ -1,4 +1,3 @@
-```markdown
 # FitTrack Back-End
 
 A RESTful API server for the FitTrack fitness tracking application. Built with Node.js, Express, and MongoDB, this service manages user authentication, diet and exercise records, and provides endpoints for the front-end to fetch and store fitness data.
