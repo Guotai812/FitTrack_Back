@@ -16,9 +16,11 @@ const userSchema = new Schema({
   frequency: { type: String, default: "" },
   type: { type: String, default: "" },
   goal: { type: String, default: "" },
-  exercises: { type: {}, default: {} },
+  exercises: { type: {}, default: { aerobic: {}, anaerobic: {} } },
 });
 
 userSchema.plugin(uniqueValidator);
 
 module.exports = mongoose.model("User", userSchema);
+
+// exercises: {aerobic: {eid: [[date, duration]]}, anaerobic: {eid: [{date, exercise: [{weight, reps, sets}, {} ]}]}}

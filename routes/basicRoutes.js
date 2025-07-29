@@ -41,4 +41,6 @@ router.patch("/:uid/editDiet", basicControllers.editDiet);
 
 router.delete("/:uid/:foodId/deleteDiet", basicControllers.deleteDiet);
 
+// TODO: add route to handle submission from exercise form
+
 module.exports = router;

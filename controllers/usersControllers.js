@@ -146,6 +146,28 @@ const getUserById = async (req, res, next) => {
   return res.status(200).json({ message: "succeed", user });
 };
 
+const getExerciseHis = async (req, res, next) => {
+  const { uid, eid } = req.params;
+  let existingUser;
+  try {
+    existingUser = await User.findById(uid);
+    if (!existingUser) return next(new HttpError("User does not exist!", 404));
+  } catch (error) {
+    return next(new HttpError("Failed to get latest data", 500));
+  }
+  const { type } = req.body;
+  const { exercises } = existingUser;
+  if (type === "aerobic") {
+    const aerobicList = exercises.aerobic || null;
+    const selectedExercise = aerobicList === null ? [] : aerobicList[eid];
+    return res.status(200).json({ msg: "succeed", data: selectedExercise });
+  }
+  const anaerobicList = exercises.anaerobic || null;
+  const selectedExercise = anaerobicList === null ? [] : anaerobicList[eid];
+  return res.status(200).json({ msg: "succeed", data: selectedExercise });
+};
+
 exports.signup = signup;
 exports.login = login;
 exports.getUserById = getUserById;
+exports.getExerciseHis = getExerciseHis;
