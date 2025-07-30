@@ -15,7 +15,7 @@ const basicSchema = new Schema({
     default: {},
   },
   exercises: { type: {}, default: {} },
-});    
+});
 
 basicSchema.plugin(uniqueValidator);
 

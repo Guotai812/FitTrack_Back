@@ -44,6 +44,7 @@ const addBasicInformation = async (req, res, next) => {
     height,
     kcal,
     date: new Date().toISOString().slice(0, 10),
+    currentKcal: kcal,
   });
 
   let user;
@@ -131,7 +132,7 @@ const getInfoByUserId = async (req, res, next) => {
       await info.save();
     }
   } catch (err) {
-    return next(new HttpError("Failed to fetch user info", 500));
+    return next(new HttpError(err, 500));
   }
 
   // 4. destructure and respond
@@ -432,9 +433,73 @@ const deleteDiet = async (req, res, next) => {
   });
 };
 
+const addExercise = async (req, res, next) => {
+  const { uid, eid } = req.params;
+  const { type, duration, setList, kcal } = req.body;
+
+  // 1) Compute today's date string in YYYY-MM-DD (Australia/Sydney)
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  // 2) Build the Mongo update for the Basic record
+  const basicUpdate =
+    type === "aerobic"
+      ? {
+          $push: { "exercises.aerobic": { eid, duration } },
+          $inc: { currentKcal: kcal },
+        }
+      : {
+          $push: { "exercises.anaerobic": { eid, setList } },
+          $inc: { currentKcal: kcal },
+        };
+
+  // 3) Apply it and return the UPDATED document
+  let updatedBasic;
+  try {
+    updatedBasic = await Basic.findOneAndUpdate(
+      { userId: uid, date: today },
+      basicUpdate,
+      { new: true } // ← return the doc _after_ update
+    ).lean();
+
+    if (!updatedBasic) {
+      return next(new HttpError("No daily record found for today", 404));
+    }
+  } catch (err) {
+    console.error("Error updating Basic record:", err);
+    return next(new HttpError("Failed to save exercise data", 500));
+  }
+
+  // 4) Also push into the User's history map (optional)
+  try {
+    const pushPath =
+      type === "aerobic"
+        ? `exercises.aerobic.${eid}`
+        : `exercises.anaerobic.${eid}`;
+
+    const pushValue = type === "aerobic" ? [today, duration] : [today, setList];
+
+    await User.updateOne({ _id: uid }, { $push: { [pushPath]: pushValue } });
+    // we won't fail the entire request if this history update errors
+  } catch (err) {
+    console.error("Error updating User history:", err);
+  }
+
+  // 5) Send back the full updated Basic doc
+  res.status(200).json({
+    msg: "succeed",
+    updated: updatedBasic,
+  });
+};
+
 exports.addBasicInformation = addBasicInformation;
 exports.getInfoByUserId = getInfoByUserId;
 exports.getPoolById = getPoolById;
 exports.addUserDiet = addUserDiet;
 exports.editDiet = editDiet;
 exports.deleteDiet = deleteDiet;
+exports.addExercise = addExercise;
