@@ -31,6 +31,6 @@ router.post(
 router.get("/:uid", usersControllers.getUserById);
 
 // TODO: add route to handle the request to retrieve latest exercise data of certain user
-router.get("/:uid/:eid/getExerciseHis", usersControllers.getExerciseHis);
+router.get("/:uid/:eid/:type/getExerciseHis", usersControllers.getExerciseHis);
 
 module.exports = router;

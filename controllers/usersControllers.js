@@ -147,7 +147,7 @@ const getUserById = async (req, res, next) => {
 };
 
 const getExerciseHis = async (req, res, next) => {
-  const { uid, eid } = req.params;
+  const { uid, eid, type } = req.params;
   let existingUser;
   try {
     existingUser = await User.findById(uid);
@@ -155,7 +155,6 @@ const getExerciseHis = async (req, res, next) => {
   } catch (error) {
     return next(new HttpError("Failed to get latest data", 500));
   }
-  const { type } = req.body;
   const { exercises } = existingUser;
   if (type === "aerobic") {
     const aerobicList = exercises.aerobic || null;
