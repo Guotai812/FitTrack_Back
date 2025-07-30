@@ -435,7 +435,7 @@ const deleteDiet = async (req, res, next) => {
 
 const addExercise = async (req, res, next) => {
   const { uid, eid } = req.params;
-  const { type, duration, setList, kcal } = req.body;
+  const { type, duration, sets, kcal } = req.body;
 
   // 1) Compute today's date string in YYYY-MM-DD (Australia/Sydney)
   const today = new Intl.DateTimeFormat("en-CA", {
@@ -453,7 +453,7 @@ const addExercise = async (req, res, next) => {
           $inc: { currentKcal: kcal },
         }
       : {
-          $push: { "exercises.anaerobic": { eid, setList } },
+          $push: { "exercises.anaerobic": { eid, sets } },
           $inc: { currentKcal: kcal },
         };
 
@@ -471,7 +471,7 @@ const addExercise = async (req, res, next) => {
     }
   } catch (err) {
     console.error("Error updating Basic record:", err);
-    return next(new HttpError("Failed to save exercise data", 500));
+    return next(new HttpError(err, 500));
   }
 
   // 4) Also push into the User's history map (optional)
@@ -481,7 +481,7 @@ const addExercise = async (req, res, next) => {
         ? `exercises.aerobic.${eid}`
         : `exercises.anaerobic.${eid}`;
 
-    const pushValue = type === "aerobic" ? [today, duration] : [today, setList];
+    const pushValue = type === "aerobic" ? [today, duration] : [today, sets];
 
     await User.updateOne({ _id: uid }, { $push: { [pushPath]: pushValue } });
     // we won't fail the entire request if this history update errors
