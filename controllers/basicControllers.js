@@ -1,4 +1,5 @@
 require("dotenv").config();
+const { randomUUID } = require("node:crypto");
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 const toCamelCase = require("../utils/toCamelCase");
@@ -436,6 +437,7 @@ const deleteDiet = async (req, res, next) => {
 const addExercise = async (req, res, next) => {
   const { uid, eid } = req.params;
   const { type, duration, sets, kcal } = req.body;
+  const rid = randomUUID();
 
   // 1) Compute today's date string in YYYY-MM-DD (Australia/Sydney)
   const today = new Intl.DateTimeFormat("en-CA", {
@@ -449,11 +451,11 @@ const addExercise = async (req, res, next) => {
   const basicUpdate =
     type === "aerobic"
       ? {
-          $push: { "exercises.aerobic": { eid, duration } },
+          $push: { "exercises.aerobic": { eid, duration, rid } },
           $inc: { currentKcal: kcal },
         }
       : {
-          $push: { "exercises.anaerobic": { eid, sets } },
+          $push: { "exercises.anaerobic": { eid, sets, rid } },
           $inc: { currentKcal: kcal },
         };
 
@@ -481,7 +483,8 @@ const addExercise = async (req, res, next) => {
         ? `exercises.aerobic.${eid}`
         : `exercises.anaerobic.${eid}`;
 
-    const pushValue = type === "aerobic" ? [today, duration] : [today, sets];
+    const pushValue =
+      type === "aerobic" ? [today, duration, rid] : [today, sets, rid];
 
     await User.updateOne({ _id: uid }, { $push: { [pushPath]: pushValue } });
     // we won't fail the entire request if this history update errors

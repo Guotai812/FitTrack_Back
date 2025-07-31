@@ -30,7 +30,8 @@ router.post(
 
 router.get("/:uid", usersControllers.getUserById);
 
-// TODO: add route to handle the request to retrieve latest exercise data of certain user
 router.get("/:uid/:eid/:type/getExerciseHis", usersControllers.getExerciseHis);
+
+// TODO: add route to handle delete
 
 module.exports = router;
