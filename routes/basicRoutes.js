@@ -43,6 +43,6 @@ router.delete("/:uid/:foodId/deleteDiet", basicControllers.deleteDiet);
 
 router.post("/:uid/:eid/addExercise", basicControllers.addExercise);
 
-// TODO: add deleteRoute
+router.delete("/:uid/deleteExercise", basicControllers.deleteExercise);
 
 module.exports = router;

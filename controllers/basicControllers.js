@@ -9,6 +9,7 @@ const User = require("../models/User");
 const Food = require("../models/Food");
 const Exercise = require("../models/Exercise");
 const HttpError = require("../models/HttpError");
+const { json } = require("node:stream/consumers");
 
 const addBasicInformation = async (req, res, next) => {
   const errors = validationResult(req);
@@ -499,6 +500,72 @@ const addExercise = async (req, res, next) => {
   });
 };
 
+const deleteExercise = async (req, res, next) => {
+  const { uid } = req.params;
+  const { rid, type, eid, kcal } = req.body;
+  let existingUser;
+  try {
+    existingUser = await User.findById(uid);
+  } catch (error) {
+    console.error("deleteExercise – error finding user:", error);
+    return next(new HttpError("Failed to delete exercise", 500));
+  }
+  if (!existingUser) {
+    console.warn("editDiet – user not found:", uid);
+    return next(new HttpError("Failed to delete exercise", 404));
+  }
+
+  // 2) Find today's record
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  let record;
+  try {
+    record = await Basic.findOne({ userId: uid, date: today });
+  } catch (error) {
+    console.error("editDiet – DB error finding Basic record:", error);
+    return next(new HttpError("Server error", 500));
+  }
+  if (!record) {
+    console.warn("editDiet – no record for today:", today);
+    return next(new HttpError("No exercise record for today", 404));
+  }
+
+  const updated = await Basic.findOneAndUpdate(
+    { userId: uid, date: today },
+    {
+      $pull: { [`exercises.${type}`]: { eid, rid } },
+      $inc: { currentKcal: -Math.abs(kcal) }, // subtract; guard so it's positive
+    },
+    { new: true }
+  ).lean();
+  // assuming you have: type = "aerobic" | "anaerobic", eid, rid, and userId (or uid)
+  await User.findOneAndUpdate(
+    { _id: uid }, // or { userId: uid } if that's your key
+    [
+      {
+        $set: {
+          [`exercises.${type}.${eid}`]: {
+            $filter: {
+              input: { $ifNull: [`$exercises.${type}.${eid}`, []] },
+              as: "entry",
+              cond: {
+                $ne: [{ $arrayElemAt: ["$$entry", 2] }, rid], // keep entries whose rid ≠ target
+              },
+            },
+          },
+        },
+      },
+    ]
+  ).lean();
+
+  return res.status(200).json({ msg: "succeed", updated });
+};
+
 exports.addBasicInformation = addBasicInformation;
 exports.getInfoByUserId = getInfoByUserId;
 exports.getPoolById = getPoolById;
@@ -506,3 +573,4 @@ exports.addUserDiet = addUserDiet;
 exports.editDiet = editDiet;
 exports.deleteDiet = deleteDiet;
 exports.addExercise = addExercise;
+exports.deleteExercise = deleteExercise;
