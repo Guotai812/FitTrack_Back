@@ -45,4 +45,6 @@ router.post("/:uid/:eid/addExercise", basicControllers.addExercise);
 
 router.delete("/:uid/deleteExercise", basicControllers.deleteExercise);
 
+router.patch("/:uid/updateExercise", basicControllers.updateExercise);
+
 module.exports = router;

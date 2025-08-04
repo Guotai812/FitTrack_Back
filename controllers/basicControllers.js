@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { randomUUID } = require("node:crypto");
+const { randomUUID, setEngine } = require("node:crypto");
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 const toCamelCase = require("../utils/toCamelCase");
@@ -566,6 +566,81 @@ const deleteExercise = async (req, res, next) => {
   return res.status(200).json({ msg: "succeed", updated });
 };
 
+const updateExercise = async (req, res, next) => {
+  const { uid } = req.params;
+  const { rid, type, kcalDifference, updatedValue, eid } = req.body;
+  let existingUser;
+  try {
+    existingUser = await User.findById(uid);
+  } catch (error) {
+    console.error("updatedExercise – error finding user:", error);
+    return next(new HttpError("Failed to update exercise", 500));
+  }
+  if (!existingUser) {
+    console.warn("updatedExercise – user not found:", uid);
+    return next(new HttpError("Failed to update exercise", 404));
+  }
+
+  // 2) Find today's record
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  let record;
+  try {
+    record = await Basic.findOne({ userId: uid, date: today });
+  } catch (error) {
+    console.error("updatedExercise – DB error finding Basic record:", error);
+    return next(new HttpError("Server error", 500));
+  }
+  if (!record) {
+    console.warn("updatedExercise – no record for today:", today);
+    return next(new HttpError("No exercise record for today", 404));
+  }
+  if (type === "aerobic") {
+    const hisArray = existingUser.exercises.aerobic[eid];
+    const idx = hisArray.findIndex((entry) => entry[2] === rid);
+    if (idx === -1) throw new Error("rid not found");
+    hisArray[idx][1] = updatedValue;
+    existingUser.markModified(`exercises.aerobic.${eid}`);
+
+    // fixed: same rid matching logic instead of entry.rid
+    const arr = record.exercises.aerobic;
+    if (!Array.isArray(arr)) {
+      return next(
+        new HttpError("Invalid eid or missing aerobic bucket in record", 400)
+      );
+    }
+    const entry = arr.find((entry) => entry.rid === rid);
+    if (!entry) {
+      return next(new HttpError("Exercise entry not found", 404));
+    }
+    entry.duration = updatedValue;
+    record.markModified(`exercises.aerobic`);
+
+    record.currentKcal += kcalDifference;
+
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
+      const updated = await record.save({ session });
+      await existingUser.save({ session });
+      await session.commitTransaction();
+      return res.status(200).json({ msg: "succeed", updated });
+    } catch (error) {
+      await session.abortTransaction();
+      console.error("updatedExercise – DB error saving updated record:", error);
+      return next(new HttpError(error, 500));
+    } finally {
+      await session.endSession();
+    }
+  } else if (type === "anaerobic") {
+  }
+};
+
 exports.addBasicInformation = addBasicInformation;
 exports.getInfoByUserId = getInfoByUserId;
 exports.getPoolById = getPoolById;
@@ -574,3 +649,4 @@ exports.editDiet = editDiet;
 exports.deleteDiet = deleteDiet;
 exports.addExercise = addExercise;
 exports.deleteExercise = deleteExercise;
+exports.updateExercise = updateExercise;
