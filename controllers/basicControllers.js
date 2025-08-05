@@ -1,15 +1,14 @@
 require("dotenv").config();
-const { randomUUID, setEngine } = require("node:crypto");
+const { randomUUID } = require("node:crypto");
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
-const toCamelCase = require("../utils/toCamelCase");
+const { getCurrentKcal } = require("../utils/getCurrentKcal");
 
 const Basic = require("../models/Basic");
 const User = require("../models/User");
 const Food = require("../models/Food");
 const Exercise = require("../models/Exercise");
 const HttpError = require("../models/HttpError");
-const { json } = require("node:stream/consumers");
 
 const addBasicInformation = async (req, res, next) => {
   const errors = validationResult(req);
@@ -37,9 +36,8 @@ const addBasicInformation = async (req, res, next) => {
       ? (10 * weight + 6.25 * height - 5 * age) * freMultiplier
       : (10 * weight + 6.25 * height - 5 * age - 161) * freMultiplier;
 
-  const kcal = Math.round(
-    goal === "keep fit" ? TDEE : goal === "lose fat" ? TDEE - 300 : TDEE + 300
-  );
+  const kcal =
+    goal === "keep fit" ? TDEE : goal === "lose fat" ? TDEE - 300 : TDEE + 300;
   const basicInfo = new Basic({
     userId,
     weight,
@@ -258,13 +256,13 @@ const addUserDiet = async (req, res, next) => {
   // 8) Merge same-item or push new
   const existing = slotArr.find((entry) => entry.food === name);
   if (existing) {
-    existing.weight += weight;
+    existing.weight = weight;
   } else {
     slotArr.push({ food: name, weight });
   }
 
   // 9) Subtract calories
-  record.currentKcal -= kcal;
+  record.currentKcal = await getCurrentKcal(user.kcal, record);
 
   // 10) Mark modified & save
   // (if `diets` is a Mixed type, Mongoose needs this)
@@ -317,7 +315,7 @@ const editDiet = async (req, res, next) => {
   }
 
   // 3) Destructure request body
-  const { food, meal, isMain, weight, originalWeight } = req.body;
+  const { food, meal, isMain, weight } = req.body;
 
   // 4) Load food doc (and kcal)
   let foodDoc;
@@ -331,11 +329,6 @@ const editDiet = async (req, res, next) => {
     console.warn("editDiet – food not found:", food);
     return next(new HttpError("Food not found", 404));
   }
-
-  // 5) Compute caloric delta (one decimal)
-  const gap = Number(originalWeight) - Number(weight);
-  const raw = (gap / 100) * foodDoc.kcal;
-  const gapKcal = Math.round(raw * 10) / 10;
 
   // 6) Locate and update the diet entry
   const side = isMain ? "main" : "extra";
@@ -355,10 +348,10 @@ const editDiet = async (req, res, next) => {
     return next(new HttpError("No such food entry in your diet", 400));
   }
 
-  entry.weight = Number(weight);
-
+  entry.weight = weight;
+  record.markModified("diets");
   // 7) Update remaining calories
-  record.currentKcal = (record.currentKcal ?? 0) + gapKcal;
+  record.currentKcal = await getCurrentKcal(existingUser.kcal, record);
 
   // 8) Save and respond
   try {
@@ -406,7 +399,7 @@ const deleteDiet = async (req, res, next) => {
     return next(new HttpError("No diet record for today", 404));
   }
 
-  const { meal, isMain, kcal } = req.body;
+  const { meal, isMain } = req.body;
   const listKey = isMain ? "main" : "extra";
   let updated;
   try {
@@ -416,10 +409,11 @@ const deleteDiet = async (req, res, next) => {
         $pull: {
           [`diets.${meal}.${listKey}`]: { food: foodId },
         },
-        $inc: { currentKcal: kcal },
       },
       { new: true }
     );
+    const kcal = await getCurrentKcal(existingUser.kcal, updated);
+    updated.currentKcal = kcal;
   } catch (err) {
     console.error("deleteDiet – DB error:", err);
     return next(new HttpError("Could not update record", 500));
@@ -638,6 +632,28 @@ const updateExercise = async (req, res, next) => {
       await session.endSession();
     }
   } else if (type === "anaerobic") {
+    const hisArr = existingUser.exercises.anaerobic[eid];
+    const idx = hisArr.findIndex((e) => e[2] === rid);
+    hisArr[idx][1] = updatedValue;
+    existingUser.markModified(`exercises.anaerobic.${eid}`);
+
+    const ex = record.exercises.anaerobic.find((e) => e.rid === rid);
+    ex.sets = updatedValue;
+    record.markModified(`exercises.anaaerobic`);
+    record.currentKcal += kcalDifference;
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
+      const updated = await record.save({ session });
+      await existingUser.save({ session });
+      await session.commitTransaction();
+      return res.status(200).json({ msg: "succeed", updated });
+    } catch (error) {
+      console.error("updatedExercise – DB error saving updated record:", error);
+      return next(new HttpError(error, 500));
+    } finally {
+      await session.endSession();
+    }
   }
 };
 
