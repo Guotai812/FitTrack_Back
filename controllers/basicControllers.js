@@ -431,8 +431,19 @@ const deleteDiet = async (req, res, next) => {
 
 const addExercise = async (req, res, next) => {
   const { uid, eid } = req.params;
-  const { type, duration, sets, kcal } = req.body;
+  const { type, duration, sets } = req.body;
   const rid = randomUUID();
+  let existingUser;
+  try {
+    existingUser = await User.findById(uid);
+  } catch (error) {
+    console.error("editDiet – error finding user:", error);
+    return next(new HttpError("Failed to update data", 500));
+  }
+  if (!existingUser) {
+    console.warn("editDiet – user not found:", uid);
+    return next(new HttpError("Failed to update data", 404));
+  }
 
   // 1) Compute today's date string in YYYY-MM-DD (Australia/Sydney)
   const today = new Intl.DateTimeFormat("en-CA", {
@@ -447,11 +458,9 @@ const addExercise = async (req, res, next) => {
     type === "aerobic"
       ? {
           $push: { "exercises.aerobic": { eid, duration, rid } },
-          $inc: { currentKcal: kcal },
         }
       : {
           $push: { "exercises.anaerobic": { eid, sets, rid } },
-          $inc: { currentKcal: kcal },
         };
 
   // 3) Apply it and return the UPDATED document
@@ -461,8 +470,15 @@ const addExercise = async (req, res, next) => {
       { userId: uid, date: today },
       basicUpdate,
       { new: true } // ← return the doc _after_ update
-    ).lean();
+    );
+    updatedBasic.currentKcal = await getCurrentKcal(
+      existingUser.kcal,
+      updatedBasic,
+      existingUser.weight
+    );
+    updatedBasic.markModified("exercises");
 
+    await updatedBasic.save();
     if (!updatedBasic) {
       return next(new HttpError("No daily record found for today", 404));
     }
@@ -533,10 +549,16 @@ const deleteExercise = async (req, res, next) => {
     { userId: uid, date: today },
     {
       $pull: { [`exercises.${type}`]: { eid, rid } },
-      $inc: { currentKcal: -Math.abs(kcal) }, // subtract; guard so it's positive
     },
     { new: true }
-  ).lean();
+  );
+  updated.currentKcal = await getCurrentKcal(
+    existingUser.kcal,
+    updated,
+    existingUser.weight
+  );
+  updated.markModified("exercise");
+  await updated.save();
   // assuming you have: type = "aerobic" | "anaerobic", eid, rid, and userId (or uid)
   await User.findOneAndUpdate(
     { _id: uid }, // or { userId: uid } if that's your key
@@ -562,7 +584,7 @@ const deleteExercise = async (req, res, next) => {
 
 const updateExercise = async (req, res, next) => {
   const { uid } = req.params;
-  const { rid, type, kcalDifference, updatedValue, eid } = req.body;
+  const { rid, type, updatedValue, eid } = req.body;
   let existingUser;
   try {
     existingUser = await User.findById(uid);
@@ -614,8 +636,15 @@ const updateExercise = async (req, res, next) => {
     }
     entry.duration = updatedValue;
     record.markModified(`exercises.aerobic`);
-
-    record.currentKcal += kcalDifference;
+    try {
+      record.currentKcal = await getCurrentKcal(
+        existingUser.kcal,
+        record,
+        existingUser.weight
+      );
+    } catch (error) {
+      return next(new HttpError(error, 500));
+    }
 
     const session = await mongoose.startSession();
     try {
@@ -640,7 +669,15 @@ const updateExercise = async (req, res, next) => {
     const ex = record.exercises.anaerobic.find((e) => e.rid === rid);
     ex.sets = updatedValue;
     record.markModified(`exercises.anaaerobic`);
-    record.currentKcal += kcalDifference;
+    try {
+      record.currentKcal = await getCurrentKcal(
+        existingUser.kcal,
+        record,
+        existingUser.weight
+      );
+    } catch (error) {
+      return next(new HttpError(error, 500));
+    }
     const session = await mongoose.startSession();
     try {
       session.startTransaction();

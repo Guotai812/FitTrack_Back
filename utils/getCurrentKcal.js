@@ -11,7 +11,7 @@ function getTotalsPerFood(diets) {
     }, {});
 }
 
-export async function getCurrentKcal(userKcal, record) {
+export async function getCurrentKcal(userKcal, record, userWeight = 0) {
   const totalsPerMeal = getTotalsPerFood(record.diets);
   let foodKcal = 0;
   for (const [mealName, totalWeight] of Object.entries(totalsPerMeal)) {
@@ -19,56 +19,28 @@ export async function getCurrentKcal(userKcal, record) {
     foodKcal += (eachFood.kcal * totalWeight) / 100;
   }
 
-  const aerobics = record.exercises.aerobic;
-  const anaerobics = record.exercises.anaerobic;
+  let aerobicTotal = 0;
+  for (const entry of record.exercises.aerobic ?? []) {
+    const ex = await Exercise.findById(entry.eid);
+    if (!ex?.met) continue;
+    const kcalPerMin = (ex.met * 3.5 * userWeight) / 200;
+    aerobicTotal += entry.duration * kcalPerMin;
+  }
 
-  const aerobicItems = aerobics
-    .map(async (entry) => {
-      const ex = await Exercise.findById(entry.eid);
-      if (!ex || ex.met == null) return null;
-      const kcalPerMin = (ex.met * 3.5 * info.weight) / 200;
-      const consumedKcal = entry.duration * kcalPerMin;
-      return {
-        duration: entry.duration,
-        consumedKcal,
-      };
-    })
-    .filter((x) => !!x);
+  let anaerobicTotal = 0;
+  for (const entry of record.exercises.anaerobic ?? []) {
+    const ex = await Exercise.findById(entry.eid);
+    if (!ex) continue; // skip if lookup failed
 
-  const anaerobicItems = anaerobics
-    .map(async (entry) => {
-      const ex = await Exercise.findById(entry.eid);
-      if (!ex) return null;
-      const defaultRom = ex.defaultRom;
-      const kcalPerKgMeter = ex.kcalPerKgMeter;
+    const { defaultRom, kcalPerKgMeter } = ex;
+    const consumedKcal = entry.sets.reduce(
+      (sum, { weight, reps, sets: setCount }) =>
+        sum + weight * reps * setCount * defaultRom * kcalPerKgMeter,
+      0
+    );
+    anaerobicTotal += consumedKcal;
+  }
 
-      const volume = entry.sets.reduce(
-        (sum, { weight, reps, sets: setCount }) =>
-          sum + weight * reps * setCount,
-        0
-      );
-
-      const rawKcal = entry.sets.reduce(
-        (sum, { weight, reps, sets: setCount }) =>
-          sum + weight * reps * setCount * defaultRom * kcalPerKgMeter,
-        0
-      );
-
-      return {
-        volume,
-        consumedKcal: rawKcal,
-      };
-    })
-    .filter((x) => !!x);
-
-  const aerobicTotal = aerobicItems.reduce(
-    (sum, it) => sum + it.consumedKcal,
-    0
-  );
-  const anaerobicTotal = anaerobicItems.reduce(
-    (sum, it) => sum + it.consumedKcal,
-    0
-  );
   const exerciseTotal = aerobicTotal + anaerobicTotal;
   return userKcal - foodKcal + exerciseTotal;
 }
