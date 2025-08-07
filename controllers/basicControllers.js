@@ -63,6 +63,7 @@ const addBasicInformation = async (req, res, next) => {
     session.startTransaction();
     await basicInfo.save({ session });
     user.isCompleted = true;
+    user.gender = gender;
     user.kcal = kcal;
     user.height = height;
     user.weight = weight;
@@ -262,7 +263,7 @@ const addUserDiet = async (req, res, next) => {
   }
 
   // 9) Subtract calories
-  record.currentKcal = await getCurrentKcal(user.kcal, record);
+  record.currentKcal = await getCurrentKcal(user.kcal, record, user.weight);
 
   // 10) Mark modified & save
   // (if `diets` is a Mixed type, Mongoose needs this)
@@ -351,7 +352,11 @@ const editDiet = async (req, res, next) => {
   entry.weight = weight;
   record.markModified("diets");
   // 7) Update remaining calories
-  record.currentKcal = await getCurrentKcal(existingUser.kcal, record);
+  record.currentKcal = await getCurrentKcal(
+    existingUser.kcal,
+    record,
+    existingUser.weight
+  );
 
   // 8) Save and respond
   try {
@@ -412,8 +417,13 @@ const deleteDiet = async (req, res, next) => {
       },
       { new: true }
     );
-    const kcal = await getCurrentKcal(existingUser.kcal, updated);
-    updated.currentKcal = kcal;
+    updated.markModified("diets");
+    updated.currentKcal = await getCurrentKcal(
+      existingUser.kcal,
+      updated,
+      existingUser.weight
+    );
+    await updated.save();
   } catch (err) {
     console.error("deleteDiet – DB error:", err);
     return next(new HttpError("Could not update record", 500));

@@ -2,9 +2,13 @@ require("dotenv").config();
 const { validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { getUserAndRecord } = require("../utils/getUserAndRecord");
+const { calCulateKcal } = require("../utils/calCulateKcal");
 
 const User = require("../models/User");
 const HttpError = require("../models/HttpError");
+const { default: mongoose } = require("mongoose");
+const { getCurrentKcal } = require("../utils/getCurrentKcal");
 
 const signup = async (req, res, next) => {
   const errors = validationResult(req);
@@ -166,7 +170,44 @@ const getExerciseHis = async (req, res, next) => {
   return res.status(200).json({ msg: "succeed", data: selectedExercise });
 };
 
+const updateWeight = async (req, res, next) => {
+  const { uid } = req.params;
+  let user;
+  let basic;
+  try {
+    const { existingUser, record } = await getUserAndRecord(
+      uid,
+      "updateWeight",
+      "update weight"
+    );
+    user = existingUser;
+    basic = record;
+  } catch (error) {
+    return next(error);
+  }
+
+  const { weight } = req.body;
+  user.weight = weight;
+  basic.weight = weight;
+  user.kcal = calCulateKcal(user);
+  basic.kcal = user.kcal;
+  basic.currentKcal = await getCurrentKcal(user.kcal, basic, weight);
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    await user.save({ session });
+    await basic.save({ session });
+    await session.commitTransaction();
+  } catch (error) {
+    return next(new HttpError(error, 500));
+  } finally {
+    await session.endSession();
+  }
+  return res.status(200).json({ msg: "succeed", updated: basic });
+};
+
 exports.signup = signup;
 exports.login = login;
 exports.getUserById = getUserById;
 exports.getExerciseHis = getExerciseHis;
+exports.updateWeight = updateWeight;

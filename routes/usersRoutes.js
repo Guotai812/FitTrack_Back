@@ -32,6 +32,6 @@ router.get("/:uid", usersControllers.getUserById);
 
 router.get("/:uid/:eid/:type/getExerciseHis", usersControllers.getExerciseHis);
 
-// TODO: add route to handle delete
+router.patch("/:uid/updateWeight", usersControllers.updateWeight);
 
 module.exports = router;
