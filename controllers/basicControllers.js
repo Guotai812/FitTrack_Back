@@ -9,6 +9,7 @@ const User = require("../models/User");
 const Food = require("../models/Food");
 const Exercise = require("../models/Exercise");
 const HttpError = require("../models/HttpError");
+const { getUserAndRecord } = require("../utils/getUserAndRecord");
 
 const addBasicInformation = async (req, res, next) => {
   const errors = validationResult(req);
@@ -705,6 +706,20 @@ const updateExercise = async (req, res, next) => {
   }
 };
 
+const getWeightHis = async (req, res, next) => {
+  const { uid } = req.params;
+  let arr;
+  try {
+    arr = await Basic.find({ userId: uid, isChanged: true }).sort({ date: 1 });
+  } catch (error) {
+    console.error("getWeightHis – error finding user:", error);
+    return next(new HttpError("Failed to get weight history", 500));
+  }
+  return res
+    .status(200)
+    .json({ msg: "succeed", data: arr.map((e) => [e.date, e.weight]) });
+};
+
 exports.addBasicInformation = addBasicInformation;
 exports.getInfoByUserId = getInfoByUserId;
 exports.getPoolById = getPoolById;
@@ -714,3 +729,4 @@ exports.deleteDiet = deleteDiet;
 exports.addExercise = addExercise;
 exports.deleteExercise = deleteExercise;
 exports.updateExercise = updateExercise;
+exports.getWeightHis = getWeightHis;

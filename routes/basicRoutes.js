@@ -47,4 +47,6 @@ router.delete("/:uid/deleteExercise", basicControllers.deleteExercise);
 
 router.patch("/:uid/updateExercise", basicControllers.updateExercise);
 
+router.get("/:uid/getWeightHis", basicControllers.getWeightHis);
+
 module.exports = router;
