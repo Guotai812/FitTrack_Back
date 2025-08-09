@@ -191,6 +191,7 @@ const updateWeight = async (req, res, next) => {
   basic.weight = weight;
   user.kcal = calCulateKcal(user);
   basic.kcal = user.kcal;
+  basic.isChanged = true;
   basic.currentKcal = await getCurrentKcal(user.kcal, basic, weight);
   const session = await mongoose.startSession();
   try {

@@ -41,6 +41,7 @@ const addBasicInformation = async (req, res, next) => {
   const basicInfo = new Basic({
     userId,
     weight,
+    isChanged: true,
     height,
     kcal,
     date: new Date().toISOString().slice(0, 10),
