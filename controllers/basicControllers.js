@@ -9,7 +9,6 @@ const User = require("../models/User");
 const Food = require("../models/Food");
 const Exercise = require("../models/Exercise");
 const HttpError = require("../models/HttpError");
-const { getUserAndRecord } = require("../utils/getUserAndRecord");
 
 const addBasicInformation = async (req, res, next) => {
   const errors = validationResult(req);
@@ -94,6 +93,7 @@ const getInfoByUserId = async (req, res, next) => {
   }
 
   const { uid } = req.params;
+  const { date } = req.query;
 
   // 2. ensure user exists
   let user;
@@ -111,12 +111,7 @@ const getInfoByUserId = async (req, res, next) => {
   try {
     info = await Basic.findOne({
       userId: uid,
-      date: new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Australia/Sydney",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(new Date()),
+      date,
     }).exec();
     if (!info) {
       info = new Basic({
@@ -124,12 +119,7 @@ const getInfoByUserId = async (req, res, next) => {
         weight: user.weight,
         height: user.height,
         currentKcal: user.kcal,
-        date: new Intl.DateTimeFormat("en-CA", {
-          timeZone: "Australia/Sydney",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }).format(new Date()),
+        date,
         userId: uid,
       });
       await info.save();
@@ -139,7 +129,7 @@ const getInfoByUserId = async (req, res, next) => {
   }
 
   // 4. destructure and respond
-  const { weight, height, kcal, diets, exercises, date, currentKcal } = info;
+  const { weight, height, kcal, diets, exercises, currentKcal } = info;
   return res
     .status(200)
     .json({ weight, height, kcal, diets, exercises, date, currentKcal });
@@ -720,6 +710,31 @@ const getWeightHis = async (req, res, next) => {
     .json({ msg: "succeed", data: arr.map((e) => [e.date, e.weight]) });
 };
 
+const getHis = async (req, res, next) => {
+  const { uid } = req.params;
+  const { date } = req.query;
+  let arr;
+  try {
+    arr = await Basic.find({ userId: uid, date: { $regex: `^${date}` } }).sort({
+      date: 1,
+    });
+  } catch (error) {
+    console.error("getHis – error finding user:", error);
+    return next(new HttpError("Failed to get historic data", 500));
+  }
+  if (!arr || arr.length === 0) {
+    console.error("getHis – error finding user:", error);
+    return next(new HttpError("Failed to get historic data", 404));
+  }
+  return res.status(200).json({
+    msg: "succeed",
+    data: arr.map((e) => {
+      const date = e.date.split("-")[2];
+      return { date, exercises: e.exercises, diets: e.diets };
+    }),
+  });
+};
+
 exports.addBasicInformation = addBasicInformation;
 exports.getInfoByUserId = getInfoByUserId;
 exports.getPoolById = getPoolById;
@@ -730,3 +745,4 @@ exports.addExercise = addExercise;
 exports.deleteExercise = deleteExercise;
 exports.updateExercise = updateExercise;
 exports.getWeightHis = getWeightHis;
+exports.getHis = getHis;

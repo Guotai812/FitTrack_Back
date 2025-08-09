@@ -49,4 +49,6 @@ router.patch("/:uid/updateExercise", basicControllers.updateExercise);
 
 router.get("/:uid/getWeightHis", basicControllers.getWeightHis);
 
+router.get("/:uid/getHis", basicControllers.getHis);
+
 module.exports = router;
