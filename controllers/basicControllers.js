@@ -670,7 +670,7 @@ const getHis = async (req, res, next) => {
   let arr;
   try {
     arr = await Basic.find({ userId: uid, date: { $regex: `^${date}` } }).sort({
-      date: 1,
+      date: -1,
     });
   } catch (error) {
     console.error("getHis – error finding user:", error);
