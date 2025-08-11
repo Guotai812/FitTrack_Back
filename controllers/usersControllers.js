@@ -172,24 +172,32 @@ const getExerciseHis = async (req, res, next) => {
 
 const updateWeight = async (req, res, next) => {
   const { uid } = req.params;
+  const { date, weight } = req.body;
   let user;
   let basic;
   try {
     const { existingUser, record } = await getUserAndRecord(
       uid,
       "updateWeight",
-      "update weight"
+      "update weight",
+      date
     );
     user = existingUser;
     basic = record;
   } catch (error) {
     return next(error);
   }
-
-  const { weight } = req.body;
-  user.weight = weight;
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  if (date === today) {
+    user.weight = weight;
+    user.kcal = calCulateKcal(user);
+  }
   basic.weight = weight;
-  user.kcal = calCulateKcal(user);
   basic.kcal = user.kcal;
   basic.isChanged = true;
   basic.currentKcal = await getCurrentKcal(user.kcal, basic, weight);

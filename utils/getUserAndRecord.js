@@ -2,7 +2,7 @@ import HttpError from "../models/HttpError.js";
 import User from "../models/User.js";
 import Basic from "../models/Basic.js";
 
-export async function getUserAndRecord(uid, router, name) {
+export async function getUserAndRecord(uid, router, name, date) {
   let existingUser;
   try {
     existingUser = await User.findById(uid);
@@ -15,16 +15,9 @@ export async function getUserAndRecord(uid, router, name) {
     throw new HttpError(`Failed to ${name}`, 404);
   }
 
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-
   let record;
   try {
-    record = await Basic.findOne({ userId: uid, date: today });
+    record = await Basic.findOne({ userId: uid, date: date });
   } catch (error) {
     console.error(`${router} – DB error finding Basic record:`, error);
     throw new HttpError("Server error", 500);

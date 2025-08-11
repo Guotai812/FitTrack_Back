@@ -181,6 +181,7 @@ const getPoolById = async (req, res, next) => {
 
 const addUserDiet = async (req, res, next) => {
   const { uid } = req.params;
+  let { name, weight: w, kcal: k, meal, isMain, date } = req.body;
 
   // 1) Validate User ID
   if (!mongoose.Types.ObjectId.isValid(uid)) {
@@ -199,18 +200,10 @@ const addUserDiet = async (req, res, next) => {
     return next(new HttpError("User not found", 404));
   }
 
-  // 3) Compute today’s date as 'YYYY-MM-DD'
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-
   // 4) Find today’s Basic record
   let record;
   try {
-    record = await Basic.findOne({ userId: uid, date: today });
+    record = await Basic.findOne({ userId: uid, date: date });
   } catch (err) {
     console.error("DB error finding Basic record:", err);
     return next(new HttpError("Server error", 500));
@@ -220,7 +213,7 @@ const addUserDiet = async (req, res, next) => {
   }
 
   // 5) Extract & coerce payload
-  let { name, weight: w, kcal: k, meal, isMain } = req.body;
+
   const weight = Number(w);
   const kcal = Number(k);
 
@@ -249,7 +242,7 @@ const addUserDiet = async (req, res, next) => {
   // 8) Merge same-item or push new
   const existing = slotArr.find((entry) => entry.food === name);
   if (existing) {
-    existing.weight = weight;
+    existing.weight += weight;
   } else {
     slotArr.push({ food: name, weight });
   }
@@ -273,6 +266,7 @@ const addUserDiet = async (req, res, next) => {
 
 const editDiet = async (req, res, next) => {
   const { uid } = req.params;
+  const { food, meal, isMain, weight, date } = req.body;
 
   // 1) Find user
   let existingUser;
@@ -287,28 +281,17 @@ const editDiet = async (req, res, next) => {
     return next(new HttpError("Failed to update data", 404));
   }
 
-  // 2) Find today's record
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-
   let record;
   try {
-    record = await Basic.findOne({ userId: uid, date: today });
+    record = await Basic.findOne({ userId: uid, date: date });
   } catch (error) {
     console.error("editDiet – DB error finding Basic record:", error);
     return next(new HttpError("Server error", 500));
   }
   if (!record) {
-    console.warn("editDiet – no record for today:", today);
+    console.warn("editDiet – no record for today:", date);
     return next(new HttpError("No diet record for today", 404));
   }
-
-  // 3) Destructure request body
-  const { food, meal, isMain, weight } = req.body;
 
   // 4) Load food doc (and kcal)
   let foodDoc;
@@ -363,7 +346,7 @@ const editDiet = async (req, res, next) => {
 
 const deleteDiet = async (req, res, next) => {
   const { uid, foodId } = req.params;
-
+  const { meal, isMain, date } = req.body;
   let existingUser;
   try {
     existingUser = await User.findById(uid);
@@ -376,32 +359,23 @@ const deleteDiet = async (req, res, next) => {
     return next(new HttpError("Failed to update data", 404));
   }
 
-  // 2) Find today's record
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-
   let record;
   try {
-    record = await Basic.findOne({ userId: uid, date: today });
+    record = await Basic.findOne({ userId: uid, date: date });
   } catch (error) {
     console.error("editDiet – DB error finding Basic record:", error);
     return next(new HttpError("Server error", 500));
   }
   if (!record) {
-    console.warn("editDiet – no record for today:", today);
+    console.warn("editDiet – no record for today:", date);
     return next(new HttpError("No diet record for today", 404));
   }
 
-  const { meal, isMain } = req.body;
   const listKey = isMain ? "main" : "extra";
   let updated;
   try {
     updated = await Basic.findOneAndUpdate(
-      { userId: uid, date: today },
+      { userId: uid, date: date },
       {
         $pull: {
           [`diets.${meal}.${listKey}`]: { food: foodId },
@@ -418,7 +392,7 @@ const deleteDiet = async (req, res, next) => {
     await updated.save();
   } catch (err) {
     console.error("deleteDiet – DB error:", err);
-    return next(new HttpError("Could not update record", 500));
+    return next(new HttpError(err, 500));
   }
 
   if (!updated) {
@@ -433,7 +407,7 @@ const deleteDiet = async (req, res, next) => {
 
 const addExercise = async (req, res, next) => {
   const { uid, eid } = req.params;
-  const { type, duration, sets } = req.body;
+  const { type, duration, sets, date } = req.body;
   const rid = randomUUID();
   let existingUser;
   try {
@@ -448,12 +422,6 @@ const addExercise = async (req, res, next) => {
   }
 
   // 1) Compute today's date string in YYYY-MM-DD (Australia/Sydney)
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
 
   // 2) Build the Mongo update for the Basic record
   const basicUpdate =
@@ -469,7 +437,7 @@ const addExercise = async (req, res, next) => {
   let updatedBasic;
   try {
     updatedBasic = await Basic.findOneAndUpdate(
-      { userId: uid, date: today },
+      { userId: uid, date: date },
       basicUpdate,
       { new: true } // ← return the doc _after_ update
     );
@@ -497,7 +465,7 @@ const addExercise = async (req, res, next) => {
         : `exercises.anaerobic.${eid}`;
 
     const pushValue =
-      type === "aerobic" ? [today, duration, rid] : [today, sets, rid];
+      type === "aerobic" ? [date, duration, rid] : [date, sets, rid];
 
     await User.updateOne({ _id: uid }, { $push: { [pushPath]: pushValue } });
     // we won't fail the entire request if this history update errors
@@ -514,7 +482,7 @@ const addExercise = async (req, res, next) => {
 
 const deleteExercise = async (req, res, next) => {
   const { uid } = req.params;
-  const { rid, type, eid, kcal } = req.body;
+  const { rid, type, eid, date } = req.body;
   let existingUser;
   try {
     existingUser = await User.findById(uid);
@@ -527,28 +495,20 @@ const deleteExercise = async (req, res, next) => {
     return next(new HttpError("Failed to delete exercise", 404));
   }
 
-  // 2) Find today's record
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-
   let record;
   try {
-    record = await Basic.findOne({ userId: uid, date: today });
+    record = await Basic.findOne({ userId: uid, date: date });
   } catch (error) {
     console.error("editDiet – DB error finding Basic record:", error);
     return next(new HttpError("Server error", 500));
   }
   if (!record) {
-    console.warn("editDiet – no record for today:", today);
+    console.warn("editDiet – no record for today:", date);
     return next(new HttpError("No exercise record for today", 404));
   }
 
   const updated = await Basic.findOneAndUpdate(
-    { userId: uid, date: today },
+    { userId: uid, date: date },
     {
       $pull: { [`exercises.${type}`]: { eid, rid } },
     },
@@ -586,7 +546,7 @@ const deleteExercise = async (req, res, next) => {
 
 const updateExercise = async (req, res, next) => {
   const { uid } = req.params;
-  const { rid, type, updatedValue, eid } = req.body;
+  const { rid, type, updatedValue, eid, date } = req.body;
   let existingUser;
   try {
     existingUser = await User.findById(uid);
@@ -600,22 +560,16 @@ const updateExercise = async (req, res, next) => {
   }
 
   // 2) Find today's record
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Sydney",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
 
   let record;
   try {
-    record = await Basic.findOne({ userId: uid, date: today });
+    record = await Basic.findOne({ userId: uid, date: date });
   } catch (error) {
     console.error("updatedExercise – DB error finding Basic record:", error);
     return next(new HttpError("Server error", 500));
   }
   if (!record) {
-    console.warn("updatedExercise – no record for today:", today);
+    console.warn("updatedExercise – no record for today:", date);
     return next(new HttpError("No exercise record for today", 404));
   }
   if (type === "aerobic") {
@@ -730,7 +684,7 @@ const getHis = async (req, res, next) => {
     msg: "succeed",
     data: arr.map((e) => {
       const date = e.date.split("-")[2];
-      return { date, exercises: e.exercises, diets: e.diets };
+      return { date, exercises: e.exercises, diets: e.diets, weight: e.weight };
     }),
   });
 };
