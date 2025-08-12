@@ -672,14 +672,15 @@ const getHis = async (req, res, next) => {
     arr = await Basic.find({ userId: uid, date: { $regex: `^${date}` } }).sort({
       date: -1,
     });
+    if (!arr || arr.length === 0) {
+      console.warn("getHis – error finding user:");
+      return res.status(200).json({ msg: "succeed", data: [] });
+    }
   } catch (error) {
     console.error("getHis – error finding user:", error);
     return next(new HttpError("Failed to get historic data", 500));
   }
-  if (!arr || arr.length === 0) {
-    console.error("getHis – error finding user:", error);
-    return next(new HttpError("Failed to get historic data", 404));
-  }
+
   return res.status(200).json({
     msg: "succeed",
     data: arr.map((e) => {
