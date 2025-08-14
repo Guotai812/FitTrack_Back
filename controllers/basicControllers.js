@@ -673,7 +673,6 @@ const getHis = async (req, res, next) => {
       date: -1,
     });
     if (!arr || arr.length === 0) {
-      console.warn("getHis – error finding user:");
       return res.status(200).json({ msg: "succeed", data: [] });
     }
   } catch (error) {

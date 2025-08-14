@@ -1,11 +1,10 @@
 const mongoose = require("mongoose");
-const uniqueValidator = require("mongoose-unique-validator");
 const Schema = mongoose.Schema;
 
 const exerciseSchema = new Schema({
   creator: { type: String, required: true },
   isPublic: { type: Boolean, require: true },
-  name: { type: String, unique: true, required: true },
+  name: { type: String, required: true },
   image: { type: String, required: true },
   type: { type: String, enum: ["aerobic", "anaerobic"], required: true },
 

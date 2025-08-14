@@ -4,6 +4,7 @@ require("dotenv").config();
 
 const usersRoutes = require("./routes/usersRoutes");
 const basicRoute = require("./routes/basicRoutes");
+const poolRoute = require("./routes/poolRoute");
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api/users", usersRoutes);
 app.use("/api/basic", basicRoute);
+app.use("/api/pool", poolRoute);
 
 // Root route
 app.get("/", (req, res) => {
@@ -42,11 +44,50 @@ app.get("/", (req, res) => {
 
 //Error Handle
 app.use((error, req, res, next) => {
-  if (res.headerSent) {
-    return next(error);
+  if (res.headersSent) return next(error); // let Express handle it
+
+  // Duplicate key (Mongo)
+  if (error?.code === 11000 || error?.code === 11001) {
+    const fields = Object.keys(error.keyPattern || {});
+    return res.status(409).json({
+      message: `Duplicate value for ${fields.join(", ") || "unique field"}.`,
+    });
   }
-  res.status(error.code || 500);
-  res.json({ message: error.message || "An unknown error occurred!" });
+
+  // Invalid ObjectId, etc.
+  if (error?.name === "CastError") {
+    return res.status(400).json({ message: "Invalid ID format." });
+  }
+
+  // Mongoose validation
+  if (error?.name === "ValidationError") {
+    const details = Object.values(error.errors || {}).map((e) => e.message);
+    return res.status(422).json({ message: "Validation failed.", details });
+  }
+
+  // Bad JSON body
+  if (error instanceof SyntaxError && "body" in error) {
+    return res.status(400).json({ message: "Malformed JSON." });
+  }
+
+  // JWT errors (if you use auth)
+  if (error?.name === "JsonWebTokenError") {
+    return res.status(401).json({ message: "Invalid token." });
+  }
+  if (error?.name === "TokenExpiredError") {
+    return res.status(401).json({ message: "Token expired." });
+  }
+
+  // Multer/file upload errors (if you later add multer)
+  if (error?.name === "MulterError") {
+    return res.status(400).json({ message: `Upload error: ${error.code}` });
+  }
+
+  // Default
+  const status = error.code && Number.isInteger(error.code) ? error.code : 500;
+  return res.status(status).json({
+    message: error.message || "An unknown error occurred!",
+  });
 });
 
 // Start server

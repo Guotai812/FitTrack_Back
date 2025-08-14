@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const uniqueValidator = require("mongoose-unique-validator");
+
 
 const Schema = mongoose.Schema;
 // TODO: add a fiedl named isWeightUpdated?
@@ -18,6 +18,5 @@ const basicSchema = new Schema({
   exercises: { type: {}, default: {} },
 });
 
-basicSchema.plugin(uniqueValidator);
 
 module.exports = mongoose.model("Basic", basicSchema);

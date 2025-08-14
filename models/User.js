@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const uniqueValidator = require("mongoose-unique-validator");
 
 const Schema = mongoose.Schema;
 
@@ -20,7 +19,7 @@ const userSchema = new Schema({
   exercises: { type: {}, default: { aerobic: {}, anaerobic: {} } },
 });
 
-userSchema.plugin(uniqueValidator);
+userSchema.index({ email: 1 }, { unique: true });
 
 module.exports = mongoose.model("User", userSchema);
 
