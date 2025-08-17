@@ -77,7 +77,7 @@ exports.getPresignedUrl = async (req, res, next) => {
 
 exports.uploadFood = async (req, res, next) => {
   const { uid } = req.params;
-  const { name, imageUrl, kcal, carbon, protein, fat } = req.body;
+  const { name, imageUrl, kcal, carbon, protein, fat, type } = req.body;
   let existingUser;
   try {
     existingUser = await User.findById(uid);
@@ -86,7 +86,8 @@ exports.uploadFood = async (req, res, next) => {
     console.log("couldn't get user by id");
     return next(new HttpError("Couldn't get user by id", 500));
   }
-  if (!name || !imageUrl || !kcal || !carbon || !protein || !fat) {
+  if (!name || !imageUrl || !type) {
+    console.log(name, imageUrl, kcal, carbon, protein, fat, type);
     return next(new HttpError("All fields are required", 422));
   }
   const food = new Food({
@@ -94,10 +95,11 @@ exports.uploadFood = async (req, res, next) => {
     isPublic: true,
     name,
     image: imageUrl,
-    kcal,
-    carbon,
-    protein,
-    fat,
+    kcal: !kcal ? 0 : kcal,
+    carbon: !carbon ? 0 : carbon,
+    protein: !protein ? 0 : protein,
+    fat: !fat ? 0 : fat,
+    type,
   });
   try {
     await food.save();

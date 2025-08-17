@@ -11,6 +11,7 @@ const foodSchema = new Schema({
   carbon: { type: Number, require: true },
   protein: { type: Number, require: true },
   fat: { type: Number, require: true },
+  type: { type: String, require: true },
 });
 
 module.exports = mongoose.model("Food", foodSchema, "foodPool");
