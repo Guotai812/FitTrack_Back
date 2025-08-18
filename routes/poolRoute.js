@@ -9,4 +9,6 @@ router.get("/:uid/:type/preSign", poolControllers.getPresignedUrl);
 
 router.post("/:uid/uploadFood", poolControllers.uploadFood);
 
+router.get("/:uid/getCustomizedFood", poolControllers.getCustomizedFood);
+
 module.exports = router;

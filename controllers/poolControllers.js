@@ -109,3 +109,47 @@ exports.uploadFood = async (req, res, next) => {
   }
   return res.status(201).json({ msg: "Food uploaded successfully", food });
 };
+
+exports.getCustomizedFood = async (req, res, next) => {
+  const { uid } = req.params;
+  if (!uid) {
+    return next(new HttpError("Missing user ID in parameters.", 400));
+  }
+
+  try {
+    const [foodsArray, exercisesArray] = await Promise.all([
+      Food.find({
+        isPublic: true,
+        $or: [{ creator: uid }],
+      }).lean(),
+      Exercise.find({
+        isPublic: true,
+        $or: [{ creator: uid }],
+      }).lean(),
+    ]);
+
+    // If there’s nothing to return at all
+    if (foodsArray.length === 0 && exercisesArray.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No public foods or exercises found." });
+    }
+
+    const foods = foodsArray.reduce((map, item) => {
+      map[item._id.toString()] = item;
+      return map;
+    }, {});
+
+    const exercises = exercisesArray.reduce((map, item) => {
+      map[item._id.toString()] = item;
+      return map;
+    }, {});
+
+    return res.status(200).json({ foods, exercises });
+  } catch (error) {
+    console.error("getPoolById error:", error);
+    return next(
+      new HttpError("Internal server error while fetching pool.", 500)
+    );
+  }
+};
