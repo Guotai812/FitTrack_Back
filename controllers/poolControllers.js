@@ -156,7 +156,7 @@ exports.getCustomizedFood = async (req, res, next) => {
 
 exports.updateFood = async (req, res, next) => {
   const { uid, foodId } = req.params;
-  const { name, kcal, carbon, protein, fat, type } = req.body;
+  const { name, kcal, carbon, protein, fat, type, imageUrl } = req.body;
 
   if (!uid || !foodId) {
     return next(
@@ -184,6 +184,7 @@ exports.updateFood = async (req, res, next) => {
   food.protein = protein || food.protein;
   food.fat = fat || food.fat;
   food.type = type || food.type;
+  food.image = imageUrl || food.image;
 
   try {
     await food.save();
