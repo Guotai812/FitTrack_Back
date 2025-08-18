@@ -153,3 +153,46 @@ exports.getCustomizedFood = async (req, res, next) => {
     );
   }
 };
+
+exports.updateFood = async (req, res, next) => {
+  const { uid, foodId } = req.params;
+  const { name, kcal, carbon, protein, fat, type } = req.body;
+
+  if (!uid || !foodId) {
+    return next(
+      new HttpError("Missing user ID or food ID in parameters.", 400)
+    );
+  }
+
+  let food;
+  try {
+    food = await Food.findById(foodId);
+    if (!food) {
+      return next(new HttpError("Food not found", 404));
+    }
+    if (food.creator !== uid) {
+      return next(new HttpError("Unauthorized to update this food", 403));
+    }
+  } catch (error) {
+    console.log("couldn't get food by id");
+    return next(new HttpError("Couldn't get food by id", 500));
+  }
+
+  food.name = name || food.name;
+  food.kcal = kcal || food.kcal;
+  food.carbon = carbon || food.carbon;
+  food.protein = protein || food.protein;
+  food.fat = fat || food.fat;
+  food.type = type || food.type;
+
+  try {
+    await food.save();
+  } catch (error) {
+    console.log("couldn't save updated food");
+    return next(new HttpError(error, 500));
+  }
+
+  return res
+    .status(200)
+    .json({ msg: "Food updated successfully", updated: food });
+};

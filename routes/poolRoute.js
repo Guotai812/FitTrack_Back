@@ -11,4 +11,6 @@ router.post("/:uid/uploadFood", poolControllers.uploadFood);
 
 router.get("/:uid/getCustomizedFood", poolControllers.getCustomizedFood);
 
+router.post("/:uid/:foodId/updateFood", poolControllers.updateFood);
+
 module.exports = router;
