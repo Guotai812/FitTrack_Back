@@ -197,3 +197,38 @@ exports.updateFood = async (req, res, next) => {
     .status(200)
     .json({ msg: "Food updated successfully", updated: food });
 };
+
+exports.deleteFood = async (req, res, next) => {
+  const { uid, foodId } = req.params;
+
+  if (!uid || !foodId) {
+    return next(
+      new HttpError("Missing user ID or food ID in parameters.", 400)
+    );
+  }
+
+  let food;
+  try {
+    food = await Food.findById(foodId);
+    if (!food) {
+      return next(new HttpError("Food not found", 404));
+    }
+    if (food.creator !== uid) {
+      return next(new HttpError("Unauthorized to delete this food", 403));
+    }
+  } catch (error) {
+    console.log("couldn't get food by id");
+    return next(new HttpError("Couldn't get food by id", 500));
+  }
+
+  try {
+    await food.remove();
+  } catch (error) {
+    console.log("couldn't delete food");
+    return next(new HttpError(error, 500));
+  }
+
+  return res
+    .status(200)
+    .json({ msg: "Food deleted successfully", updated: food });
+};

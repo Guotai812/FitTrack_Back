@@ -13,4 +13,6 @@ router.get("/:uid/getCustomizedFood", poolControllers.getCustomizedFood);
 
 router.post("/:uid/:foodId/updateFood", poolControllers.updateFood);
 
+router.delete("/:uid/:foodId/deleteFood", poolControllers.deleteFood);
+
 module.exports = router;
