@@ -131,8 +131,8 @@ exports.getCustomizedFood = async (req, res, next) => {
     // If there’s nothing to return at all
     if (foodsArray.length === 0 && exercisesArray.length === 0) {
       return res
-        .status(404)
-        .json({ message: "No public foods or exercises found." });
+        .status(200)
+        .json({ message: "No public foods or exercises found.", updated: [] });
     }
 
     const foods = foodsArray.reduce((map, item) => {
@@ -222,13 +222,22 @@ exports.deleteFood = async (req, res, next) => {
   }
 
   try {
-    await food.remove();
+    await food.deleteOne();
   } catch (error) {
     console.log("couldn't delete food");
     return next(new HttpError(error, 500));
   }
 
-  return res
-    .status(200)
-    .json({ msg: "Food deleted successfully", updated: food });
+  let updatedFoods;
+  try {
+    updatedFoods = await Food.find({ creator: uid });
+  } catch (error) {
+    console.error("Couldn't fetch updated food list", error);
+    return next(new HttpError("Couldn't fetch updated food list", 500));
+  }
+
+  return res.status(200).json({
+    msg: "Food deleted successfully",
+    updated: updatedFoods,
+  });
 };
