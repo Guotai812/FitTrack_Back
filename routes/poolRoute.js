@@ -15,4 +15,6 @@ router.post("/:uid/:foodId/updateFood", poolControllers.updateFood);
 
 router.delete("/:uid/:foodId/deleteFood", poolControllers.deleteFood);
 
+router.get("/:uid/getCusExercise", poolControllers.getCusExercise);
+
 module.exports = router;

@@ -241,3 +241,34 @@ exports.deleteFood = async (req, res, next) => {
     updated: updatedFoods,
   });
 };
+
+exports.getCusExercise = async (req, res, next) => {
+  const { uid } = req.params;
+  if (!uid) {
+    return next(new HttpError("Missing user ID in parameters.", 400));
+  }
+
+  try {
+    const exercisesArray = await Exercise.find({
+      isPublic: true,
+      $or: [{ creator: uid }],
+    }).lean();
+
+    // If there’s nothing to return at all
+    if (exercisesArray.length === 0) {
+      return res.status(200).json({ message: "No public exercises found." });
+    }
+
+    const exercises = exercisesArray.reduce((map, item) => {
+      map[item._id.toString()] = item;
+      return map;
+    }, {});
+
+    return res.status(200).json({ msg: "succeed", data: exercises });
+  } catch (error) {
+    console.error("getCusExercise error:", error);
+    return next(
+      new HttpError("Internal server error while fetching exercises.", 500)
+    );
+  }
+};
