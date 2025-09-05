@@ -17,4 +17,8 @@ router.delete("/:uid/:foodId/deleteFood", poolControllers.deleteFood);
 
 router.get("/:uid/getCusExercise", poolControllers.getCusExercise);
 
+router.post("/:uid/uploadAerobic", poolControllers.uploadAerobic);
+
+router.post("/:uid/uploadAnaerobic", poolControllers.uploadAnaerobic);
+
 module.exports = router;

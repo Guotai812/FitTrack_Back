@@ -272,3 +272,74 @@ exports.getCusExercise = async (req, res, next) => {
     );
   }
 };
+
+exports.uploadAerobic = async (req, res, next) => {
+  const { uid } = req.params;
+  const { name, imageUrl, met, type, kcalPerHour } = req.body;
+  let existingUser;
+  try {
+    existingUser = await User.findById(uid);
+    if (!existingUser) return next(new HttpError("User does not exist!", 404));
+  } catch (error) {
+    console.log("couldn't get user by id");
+    return next(new HttpError("Couldn't get user by id", 500));
+  }
+  if (!name || !imageUrl || !type) {
+    console.log(name, imageUrl, met, type);
+    return next(new HttpError("All fields are required", 422));
+  }
+  const exercise = new Exercise({
+    creator: uid,
+    isPublic: true,
+    name,
+    image: imageUrl,
+    met,
+    kcalPerHour,
+    type,
+  });
+  try {
+    await exercise.save();
+  } catch (error) {
+    console.log("couldn't save exercise");
+    return next(new HttpError(error, 500));
+  }
+  return res
+    .status(201)
+    .json({ msg: "Exercise uploaded successfully", exercise });
+};
+
+exports.uploadAnaerobic = async (req, res, next) => {
+  const { uid } = req.params;
+  const { name, imageUrl, defaultRom, efficiency, buffer, type } = req.body;
+  let existingUser;
+  try {
+    existingUser = await User.findById(uid);
+    if (!existingUser) return next(new HttpError("User does not exist!", 404));
+  } catch (error) {
+    console.log("couldn't get user by id");
+    return next(new HttpError("Couldn't get user by id", 500));
+  }
+  if (!name || !imageUrl || !type) {
+    console.log(name, imageUrl, defaultRom, efficiency, buffer, type);
+    return next(new HttpError("All fields are required", 422));
+  }
+  const exercise = new Exercise({
+    creator: uid,
+    isPublic: true,
+    name,
+    image: imageUrl,
+    defaultRom,
+    efficiency,
+    buffer,
+    type,
+  });
+  try {
+    await exercise.save();
+  } catch (error) {
+    console.log("couldn't save exercise");
+    return next(new HttpError(error, 500));
+  }
+  return res
+    .status(201)
+    .json({ msg: "Exercise uploaded successfully", exercise });
+};
