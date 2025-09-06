@@ -7,6 +7,7 @@ const exerciseSchema = new Schema({
   name: { type: String, required: true },
   image: { type: String, required: true },
   type: { type: String, enum: ["aerobic", "anaerobic"], required: true },
+  subType: { type: String },
 
   // cardio fields
   met: { type: Number, default: null },

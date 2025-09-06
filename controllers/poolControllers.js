@@ -310,7 +310,7 @@ exports.uploadAerobic = async (req, res, next) => {
 
 exports.uploadAnaerobic = async (req, res, next) => {
   const { uid } = req.params;
-  const { name, imageUrl, defaultRom, efficiency, buffer, type } = req.body;
+  const { name, imageUrl, rom, efficiency, buffer, type, subType } = req.body;
   let existingUser;
   try {
     existingUser = await User.findById(uid);
@@ -320,7 +320,7 @@ exports.uploadAnaerobic = async (req, res, next) => {
     return next(new HttpError("Couldn't get user by id", 500));
   }
   if (!name || !imageUrl || !type) {
-    console.log(name, imageUrl, defaultRom, efficiency, buffer, type);
+    console.log(name, imageUrl, rom, efficiency, buffer, type);
     return next(new HttpError("All fields are required", 422));
   }
   const exercise = new Exercise({
@@ -328,10 +328,11 @@ exports.uploadAnaerobic = async (req, res, next) => {
     isPublic: true,
     name,
     image: imageUrl,
-    defaultRom,
+    defaultRom: rom,
     efficiency,
     buffer,
     type,
+    subType,
   });
   try {
     await exercise.save();
