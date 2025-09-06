@@ -395,3 +395,47 @@ exports.updateCusExercise = async (req, res, next) => {
     .status(200)
     .json({ msg: "Exercise updated successfully", updated: exercise });
 };
+
+exports.deleteCusExercise = async (req, res, next) => {
+  const { uid, id } = req.params;
+
+  if (!uid || !id) {
+    return next(
+      new HttpError("Missing user ID or exercise ID in parameters.", 400)
+    );
+  }
+
+  let exercise;
+  try {
+    exercise = await Exercise.findById(id);
+    if (!exercise) {
+      return next(new HttpError("Exercise not found", 404));
+    }
+    if (exercise.creator !== uid) {
+      return next(new HttpError("Unauthorized to delete this exercise", 403));
+    }
+  } catch (error) {
+    console.log("couldn't get exercise by id");
+    return next(new HttpError("Couldn't get exercise by id", 500));
+  }
+
+  try {
+    await exercise.deleteOne();
+  } catch (error) {
+    console.log("couldn't delete exercise");
+    return next(new HttpError(error, 500));
+  }
+
+  let updatedExercises;
+  try {
+    updatedExercises = await Exercise.find({ creator: uid });
+  } catch (error) {
+    console.error("Couldn't fetch updated exercise list", error);
+    return next(new HttpError("Couldn't fetch updated exercise list", 500));
+  }
+
+  return res.status(200).json({
+    msg: "Exercise deleted successfully",
+    data: updatedExercises,
+  });
+};
