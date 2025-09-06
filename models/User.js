@@ -19,7 +19,7 @@ const userSchema = new Schema({
   exercises: { type: {}, default: { aerobic: {}, anaerobic: {} } },
 });
 
-userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ email: 0 }, { unique: true });
 
 module.exports = mongoose.model("User", userSchema);
 
