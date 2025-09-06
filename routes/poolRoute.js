@@ -21,4 +21,6 @@ router.post("/:uid/uploadAerobic", poolControllers.uploadAerobic);
 
 router.post("/:uid/uploadAnaerobic", poolControllers.uploadAnaerobic);
 
+router.patch("/:uid/updateCusExercise/:id", poolControllers.updateCusExercise);
+
 module.exports = router;

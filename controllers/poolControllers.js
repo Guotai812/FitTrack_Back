@@ -344,3 +344,54 @@ exports.uploadAnaerobic = async (req, res, next) => {
     .status(201)
     .json({ msg: "Exercise uploaded successfully", exercise });
 };
+
+exports.updateCusExercise = async (req, res, next) => {
+  const { uid, id } = req.params;
+  const { name, imageUrl, met, kcalPerHour, rom, efficiency, buffer, subType } =
+    req.body;
+
+  if (!uid || !id) {
+    return next(
+      new HttpError("Missing user ID or exercise ID in parameters.", 400)
+    );
+  }
+
+  let exercise;
+  try {
+    exercise = await Exercise.findById(id);
+    if (!exercise) {
+      return next(new HttpError("Exercise not found", 404));
+    }
+    if (exercise.creator !== uid) {
+      return next(new HttpError("Unauthorized to update this exercise", 403));
+    }
+  } catch (error) {
+    console.log("couldn't get exercise by id");
+    return next(new HttpError("Couldn't get exercise by id", 500));
+  }
+
+  if (exercise.type === "aerobic") {
+    exercise.met = met || exercise.met;
+    exercise.kcalPerHour = kcalPerHour || exercise.kcalPerHour;
+    exercise.name = name || exercise.name;
+    exercise.image = imageUrl || exercise.image;
+  } else if (exercise.type === "anaerobic") {
+    exercise.name = name || exercise.name;
+    exercise.image = imageUrl || exercise.image;
+    exercise.defaultRom = rom || exercise.defaultRom;
+    exercise.efficiency = efficiency || exercise.efficiency;
+    exercise.buffer = buffer || exercise.buffer;
+    exercise.subType = subType || exercise.subType;
+  }
+
+  try {
+    await exercise.save();
+  } catch (error) {
+    console.log("couldn't save updated exercise");
+    return next(new HttpError(error, 500));
+  }
+
+  return res
+    .status(200)
+    .json({ msg: "Exercise updated successfully", updated: exercise });
+};
