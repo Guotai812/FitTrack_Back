@@ -103,32 +103,56 @@ Server will be available at `https://fit-track-back.vercel.app`.
 
 ## API Endpoints
 
-### Authentication
-| Method | Endpoint              | Description                |
-|--------|-----------------------|----------------------------|
-| POST   | `/api/auth/register`  | Create a new user          |
-| POST   | `/api/auth/login`     | Authenticate and get token |
+### Base URL
+All routes are mounted under `/api`.
 
-### Users
-| Method | Endpoint          | Description                  |
-|--------|-------------------|------------------------------|
-| GET    | `/api/users/me`   | Get current user profile     |
+- Users: `/api/users`
+- Basic: `/api/basic`
+- Pool: `/api/pool`
 
-### Diet Records
-| Method | Endpoint                                 | Description                  |
-|--------|------------------------------------------|------------------------------|
-| GET    | `/api/records/:userId/:date`             | Get diet/exercise for a date |
-| POST   | `/api/records/:userId/:date/diets`       | Add a food entry             |
-| PATCH  | `/api/records/:userId/:date/diets`       | Update a food entry          |
-| DELETE | `/api/records/:userId/:date/diets/:id`   | Remove a food entry          |
+### Auth
+Protected routes expect a JWT in the header:
 
-### Exercise Records
-| Method | Endpoint                                            | Description                   |
-|--------|-----------------------------------------------------|-------------------------------|
-| POST   | `/api/records/:userId/:date/exercise/aerobic`       | Add aerobic exercise entry    |
-| POST   | `/api/records/:userId/:date/exercise/anaerobic`     | Add anaerobic exercise entry  |
-| PATCH  | `/api/records/:userId/:date/exercise/:type/:id`     | Update exercise entry         |
-| DELETE | `/api/records/:userId/:date/exercise/:type/:id`     | Remove exercise entry         |
+---
+
+### Users (`/api/users`)
+- **POST** `/signup` — Register a new user.
+- **POST** `/login` — Log in; returns JWT + profile.
+- **GET** `/:uid` — Get user by ID.
+- **GET** `/:uid/:eid/:type/getExerciseHis` — Get exercise history for a given entry/type.
+- **PATCH** `/:uid/updateWeight` — Update current weight (appends to history).
+
+---
+
+### Basic (`/api/basic`)
+- **POST** `/:uid/basicInformation` — Create/update basic profile data (weight/height/age/goal, etc.).
+- **GET** `/:uid/getDailyBasic` — Get today’s computed basics (kcal, etc.).
+- **GET** `/:uid/getPool` — Get default food/exercise pools.
+- **POST** `/:uid/addDiet` — Add a diet (meal/food) record.
+- **PATCH** `/:uid/editDiet` — Edit an existing diet record.
+- **DELETE** `/:uid/:foodId/deleteDiet` — Delete a diet record by foodId.
+- **POST** `/:uid/:eid/addExercise` — Add an exercise record (by exercise id).
+- **DELETE** `/:uid/deleteExercise` — Delete an exercise record.
+- **PATCH** `/:uid/updateExercise` — Update an exercise record.
+- **GET** `/:uid/getWeightHis` — Get weight history.
+- **GET** `/:uid/getHis` — Get overall history (diet/exercise summaries).
+
+---
+
+### Pool / Custom Content (`/api/pool`)
+- **GET** `/:uid/:type/preSign?contentType=<mime>` — Get AWS S3 **pre-signed PUT** URL for image upload.  
+  - `type`: `food` or `exercise`  
+  - `contentType`: e.g. `image/png`, `image/jpeg`, `image/webp`, `image/gif`
+- **POST** `/:uid/uploadFood` — Create a **custom food** item (with optional uploaded image URL).
+- **GET** `/:uid/getCustomizedFood` — List user’s custom foods.
+- **POST** `/:uid/:foodId/updateFood` — Update a custom food.
+- **DELETE** `/:uid/:foodId/deleteFood` — Delete a custom food.
+
+- **GET** `/:uid/getCusExercise` — List user’s custom exercises.
+- **POST** `/:uid/uploadAerobic` — Add an **aerobic** exercise record.
+- **POST** `/:uid/uploadAnaerobic` — Add an **anaerobic** exercise record.
+- **PATCH** `/:uid/updateCusExercise/:id` — Update a custom exercise (by id).
+- **DELETE** `/:uid/:id/deleteCusExercise` — Delete a custom exercise (by id).
 
 ---
 
