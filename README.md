@@ -42,7 +42,7 @@ A RESTful API server for the FitTrack fitness tracking application. Built with N
 
 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/fittrack-back.git
+git clone https://github.com/Guotai812/FitTrack_Back.git
 cd fittrack-back
 ```
 
@@ -97,7 +97,7 @@ npm start
 yarn start
 ```
 
-Server will be available at `http://localhost:${process.env.PORT || 3000}`.
+Server will be available at `https://fit-track-back.vercel.app`.
 
 ---
 
